@@ -16,11 +16,10 @@ class Preprocessing:
         original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False), "Label"] = "Anomaly"
         original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False) == False, "Label"] = "Regular"
 
-    def transform_non_numerical_column(self, dataset, *column_names):
-        for column in column_names:
-            series = pd.factorize(dataset[column])[0]
-            result = self.le.fit_transform(series)
-            dataset.loc[[True] * dataset[column].shape[0], column] = result
+    def transform_non_numerical_column(self, dataset, column):
+        series = pd.factorize(dataset[column])[0]
+        result = self.le.fit_transform(series)
+        dataset.loc[[True] * dataset[column].shape[0], column] = result
 
     def filter_by_column(self, dataset, column, values):
         return dataset.loc[dataset[column].isin(values)]
