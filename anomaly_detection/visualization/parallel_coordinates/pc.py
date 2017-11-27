@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from utils.preprocessing import Preprocessing
 from utils.logger import Logger
-from pandas.tools.plotting import parallel_coordinates
-
+from pandas.plotting import parallel_coordinates
 
 class PC:
     datasets_path = None
@@ -17,8 +16,7 @@ class PC:
         self.analyzed_features = analyzed_features
 
     def draw(self, filename):
-        logger = Logger(
-            self.output_path + "\pc-" + filename + datetime.now().strftime("%Y-%m-%d_%H-%M").__str__() + ".log")
+        logger = Logger(self.output_path + "\pc-" + filename + datetime.now().strftime("%Y-%m-%d_%H-%M").__str__() + ".log")
         logger.log("Drawing sample [" + filename + "]")
         logger.log("Data transforming starts")
 
