@@ -1,4 +1,5 @@
 from visualization.parallel_coordinates.pc import PC
+from multiprocessing import Pool
 
 filenames = ["scenario_1.binetflow", "scenario_2.binetflow", "scenario_6.binetflow", "scenario_8.binetflow", "scenario_9.binetflow"]
 # filenames = ["small_sample1.csv", "small_sample2.csv"]
@@ -24,7 +25,11 @@ analyzed_features = [
     "attack"
 ]
 
+
 pc = PC(datasets_path=datasets_path, output_path=output_path, analyzed_features=analyzed_features)
 
-for i in range(0, filenames.__len__()):
-    pc.draw(filenames[i])
+if __name__ == '__main__':
+    pool = Pool()
+    pool.map(pc.draw, filenames)
+    pool.close()
+    pool.join()
