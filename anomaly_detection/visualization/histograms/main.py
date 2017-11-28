@@ -50,7 +50,10 @@ for i in range(0, filenames.__len__()):
     bg_patch = mpatches.Patch(color='b', label='Background')
 
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4, figsize=(12, 24))
-    plt.legend(handles=[anomaly_patch, normal_patch, bg_patch])
+    ax1.legend(handles=[anomaly_patch, normal_patch, bg_patch])
+    ax2.legend(handles=[anomaly_patch, normal_patch, bg_patch])
+    ax3.legend(handles=[anomaly_patch, normal_patch, bg_patch])
+    ax4.legend(handles=[anomaly_patch, normal_patch, bg_patch])
 
     # rough visualization, showing anything that doesn't go into 80% of observations
     ax1.hist([X_normal, X_bg, X_anomaly], color=['g', 'b', 'r'], alpha=0.5, bins=100, bottom=1)
