@@ -13,8 +13,13 @@ class Preprocessing:
         original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False) == False, "attack"] = -1
 
     def transform_labels_text(self, original_dataset):
-        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False), "Label"] = "Anomaly"
         original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False) == False, "Label"] = "Regular"
+        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False), "Label"] = "Anomaly"
+
+    def transform_labels_text_detailed(self, original_dataset):
+        original_dataset.loc[original_dataset['Label'].str.contains(pat="background", case=False), "Label"] = "Background"
+        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False), "Label"] = "Anomaly"
+        original_dataset.loc[original_dataset['Label'].str.contains(pat="normal", case=False), "Label"] = "Normal"
 
     def transform_non_numerical_column(self, dataset, column):
         series = pd.factorize(dataset[column])[0]
