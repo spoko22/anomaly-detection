@@ -19,7 +19,7 @@ for i in range(0, filenames.__len__()):
     analyzed_file = filenames[i]
 
     logger = Logger("../output/histogram/hist-" + analyzed_file + "-" + analyzed_parameter + ".log")
-    logger.log("Script starts")
+    logger.log("Script starts drawing histogram for file " + analyzed_file)
 
     # reading in data
     original_dataset = pd.read_csv(datasets_path + analyzed_file)
@@ -36,13 +36,13 @@ for i in range(0, filenames.__len__()):
     quantile_X_bg = X_bg.quantile([0.1, 0.9])
     quantile_X_anomaly = X_anomaly.quantile([0.1, 0.9])
 
-    logger.log("Normal:\n" + X_normal.describe().__str__())
+    logger.log("\n\nNormal:\n" + X_normal.describe().__str__())
     logger.log("Quantile boundaries:\n" + quantile_X_normal.__str__())
 
-    logger.log("Background:\n" + X_bg.describe().__str__())
+    logger.log("\n\nBackground:\n" + X_bg.describe().__str__())
     logger.log("Quantile boundaries:\n" + quantile_X_bg.__str__())
 
-    logger.log("Anomaly:\n" + X_anomaly.describe().__str__())
+    logger.log("\n\nAnomalies:\n" + X_anomaly.describe().__str__())
     logger.log("Quantile boundaries:\n" + quantile_X_anomaly.__str__())
 
     anomaly_patch = mpatches.Patch(color='r', label='Anomalies')
