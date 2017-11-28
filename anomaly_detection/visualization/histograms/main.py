@@ -60,7 +60,7 @@ for i in range(0, filenames.__len__()):
 
     ax1.set_yscale("log")
     ax1.set_xscale("log")
-    ax1.set_xlabel("SrcBytes")
+    ax1.set_xlabel(analyzed_parameter)
     ax1.set_ylabel("Frequency")
     ax1.title.set_text('Whole dataset')
 
@@ -80,7 +80,7 @@ for i in range(0, filenames.__len__()):
 
     ax2.title.set_text('80% of records labeled as "Normal" traffic')
     ax2.set_yscale("log")
-    ax2.set_xlabel("SrcBytes")
+    ax2.set_xlabel(analyzed_parameter)
     ax2.set_ylabel("Frequency")
 
     # visualizing 80% of regular "Background observations"
@@ -99,7 +99,7 @@ for i in range(0, filenames.__len__()):
 
     ax3.title.set_text('80% of records labeled as "Background" traffic')
     ax3.set_yscale("log")
-    ax3.set_xlabel("SrcBytes")
+    ax3.set_xlabel(analyzed_parameter)
     ax3.set_ylabel("Frequency")
 
     # visualizing 80% of regular "Anomaly observations"
@@ -118,7 +118,7 @@ for i in range(0, filenames.__len__()):
         ax4.set_xscale("log")
 
     ax4.set_yscale("log")
-    ax4.set_xlabel("SrcBytes")
+    ax4.set_xlabel(analyzed_parameter)
     ax4.set_ylabel("Frequency")
 
     fig.savefig("../output/histogram/hist-" + analyzed_file + "-" + analyzed_parameter + ".png", dpi=100, bbox_inches='tight')
