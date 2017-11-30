@@ -35,5 +35,7 @@ class Preprocessing:
             X_norm = (X - X.min()) / (X.max() - X.min())
             dataset.loc[[True] * dataset[column].shape[0], column] = X_norm
 
-    def get_not_present_values(self, df1, df2):
+    def get_not_present_values(self, df1, df2=None):
+        if df2 is None:
+            return df1
         return df2[~df2.index.isin(df1.index)]
