@@ -36,10 +36,9 @@ relevant_features.extend(categorical_features)
 for i in range(0, filenames.__len__()):
     analyzed_file = filenames[i]
 
-    # logger = Logger("../output/taught-models/" + datetime.now().strftime("%Y-%m-%d_%H-%M").__str__() + "-osvm-"
-    #                 + analyzed_file + ".log")
+    logger = Logger("../output/taught-models/" + datetime.now().strftime("%Y-%m-%d_%H-%M").__str__() + "-osvm-"
+                    + analyzed_file + ".log")
 
-    logger = Logger()
 
     logger.log("Prediction script using One Class SVM starts. File: " + analyzed_file)
     logger.log("Features used: " + relevant_features.__str__())
@@ -56,57 +55,55 @@ for i in range(0, filenames.__len__()):
     preprocessing.transform_labels(X)
 
     # transforming categorical data into numerical data
-    # for f_c in range(0, categorical_features.__len__()):
-    #     feature = categorical_features[f_c]
-    #     logger.log("Transforming categorical feature: " + feature)
-    #     preprocessing.transform_non_numerical_column(X, feature)
+    for f_c in range(0, categorical_features.__len__()):
+        feature = categorical_features[f_c]
+        logger.log("Transforming categorical feature: " + feature)
+        preprocessing.transform_non_numerical_column(X, feature)
 
     # TODO: scaling/normalizing/standarizing numerical features
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.strategy_25min()
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=300000)
 
-    # osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
-    #
-    # # extracting labels to a separate dataframe
-    # Y_train = X_train['attack']
-    # Y_test = X_test['attack']
-    #
-    # # removing all unnecessary features, as well as labels
-    # X_train = X_train[relevant_features]
-    # X_test = X_test[relevant_features]
-    #
-    # logger.log("Model starts to learn")
-    # model = osvm.fit(X_train)
-    #
-    # logger.log("Learning finished")
-    #
-    # # dumping taught model to file, so it may be retrieved later, if it was needed for further examination
-    # model_file = "../output/taught-models/" + datetime.now().strftime("%Y-%m-%d_%H-%M").__str__() + "-osvm-" + analyzed_file + ".model"
-    # logger.log("Dumping model to file: " + model_file)
-    # joblib.dump(model, model_file)
-    #
-    # logger.log("Data dumped, now predicting. Sanity check with training data first:")
-    # X_pred_train = model.predict(X_train)
-    #
-    # logger.log("Assessment:")
-    # logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
-    # logger.log("Precision: " + metrics.precision_score(Y_train, X_pred_train).__str__())
-    # logger.log("Recall: " + metrics.recall_score(Y_train, X_pred_train).__str__())
-    # logger.log("F1: " + metrics.f1_score(Y_train, X_pred_train).__str__())
-    # logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
-    #
-    # logger.log("Checking model parameters with test dataset:")
-    # X_pred_test = model.predict(X_test)
-    # logger.log("Assessment:")
-    # logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
-    # logger.log("Precision: " + metrics.precision_score(Y_test, X_pred_test).__str__())
-    # logger.log("Recall: " + metrics.recall_score(Y_test, X_pred_test).__str__())
-    # logger.log("F1: " + metrics.f1_score(Y_test, X_pred_test).__str__())
-    # logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_test, X_pred_test).__str__())
+    osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
+    # extracting labels to a separate dataframe
+    Y_train = X_train['attack']
+    Y_test = X_test['attack']
 
+    # removing all unnecessary features, as well as labels
+    X_train = X_train[relevant_features]
+    X_test = X_test[relevant_features]
+
+    logger.log("Model starts to learn")
+    model = osvm.fit(X_train)
+
+    logger.log("Learning finished")
+
+    # dumping taught model to file, so it may be retrieved later, if it was needed for further examination
+    model_file = "../output/taught-models/" + datetime.now().strftime("%Y-%m-%d_%H-%M").__str__() + "-osvm-" + analyzed_file + ".model"
+    logger.log("Dumping model to file: " + model_file)
+    joblib.dump(model, model_file)
+
+    logger.log("Data dumped, now predicting. Sanity check with training data first:")
+    X_pred_train = model.predict(X_train)
+
+    logger.log("Assessment:")
+    logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
+    logger.log("Precision: " + metrics.precision_score(Y_train, X_pred_train).__str__())
+    logger.log("Recall: " + metrics.recall_score(Y_train, X_pred_train).__str__())
+    logger.log("F1: " + metrics.f1_score(Y_train, X_pred_train).__str__())
+    logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
+
+    logger.log("Checking model parameters with test dataset:")
+    X_pred_test = model.predict(X_test)
+    logger.log("Assessment:")
+    logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
+    logger.log("Precision: " + metrics.precision_score(Y_test, X_pred_test).__str__())
+    logger.log("Recall: " + metrics.recall_score(Y_test, X_pred_test).__str__())
+    logger.log("F1: " + metrics.f1_score(Y_test, X_pred_test).__str__())
+    logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_test, X_pred_test).__str__())
 
 
 
