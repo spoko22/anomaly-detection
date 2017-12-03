@@ -78,8 +78,8 @@ for i in range(0, filenames.__len__()):
     osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
     # extracting labels to a separate dataframe
-    Y_train = X_train['attack']
-    Y_test = X_test['attack']
+    Y_train = X_train['inlier']
+    Y_test = X_test['inlier']
 
     # removing all unnecessary features, as well as labels
     X_train = X_train[relevant_features]

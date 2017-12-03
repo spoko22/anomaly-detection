@@ -9,8 +9,8 @@ class Preprocessing:
         return pd.read_csv(path)
 
     def transform_labels(self, original_dataset):
-        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False), "attack"] = 1
-        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False) == False, "attack"] = -1
+        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False), "inlier"] = -1
+        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False) == False, "inlier"] = 1
 
     def transform_labels_text(self, original_dataset):
         original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False) == False, "Label"] = "Regular"
