@@ -30,9 +30,19 @@ class SampleSelector:
         value_counts = self.dataset['attack'].value_counts()
         anomalies_ratio = self.__count_anomaly_ratio(value_counts)
 
+        expected_test_df = test_size
+
+        if test_size < 1.0 & test_size > 0.0:
+            expected_test_df = round(self.dataset.__len__() * test_size, 0)
+
+        expected_cv_df = cv_size
+
+        if cv_size < 1.0 & cv_size > 0.0:
+            expected_cv_df = round(self.dataset.__len__() * cv_size, 0)
+
         cv_df, test_df = self.__produce_datasets(excluded_rows=piece_25min,
                                                  anomalies_ratio=anomalies_ratio,
-                                                 test_size=test_size, cv_size=cv_size)
+                                                 test_size=expected_test_df, cv_size=expected_cv_df)
 
         return piece_25min, cv_df, test_df
 
@@ -42,8 +52,18 @@ class SampleSelector:
 
         expected_train_df = train_size
 
-        if train_size < 1 & train_size > 0:
+        if (train_size < 1.0) & (train_size > 0.0):
             expected_train_df = round(self.dataset.__len__() * train_size, 0)
+
+        expected_test_df = test_size
+
+        if (test_size < 1.0) & (test_size > 0.0):
+            expected_test_df = round(self.dataset.__len__() * test_size, 0)
+
+        expected_cv_df = cv_size
+
+        if (cv_size < 1.0) & (cv_size > 0.0):
+            expected_cv_df = round(self.dataset.__len__() * cv_size, 0)
 
         train_df = regular_dataset.sample(n=expected_train_df)
 
@@ -52,7 +72,7 @@ class SampleSelector:
 
         cv_df, test_df = self.__produce_datasets(excluded_rows=train_df,
                                                  anomalies_ratio=anomalies_ratio,
-                                                 test_size=test_size, cv_size=cv_size)
+                                                 test_size=expected_test_df, cv_size=expected_cv_df)
 
         return train_df, cv_df, test_df
 
@@ -67,10 +87,13 @@ class SampleSelector:
         rem_dataset = self.pp.get_not_present_values(self.dataset, excluded_rows)
         whole_dataset_size = self.dataset.shape[0]
 
-        cv_expected_anomalies_count = int(round(cv_size * whole_dataset_size * anomalies_ratio, 0))
-        cv_expected_regularities_count = int(round(cv_size * whole_dataset_size * (1-anomalies_ratio), 0))
-        test_expected_anomalies_count = int(round(test_size * whole_dataset_size * anomalies_ratio, 0))
-        test_expected_regularities_count = int(round(test_size * whole_dataset_size * (1-anomalies_ratio), 0))
+        cv_df_size = cv_size if cv_size > 1.0 else cv_size * whole_dataset_size
+        test_df_size = test_size if test_size > 1.0 else test_size * whole_dataset_size
+
+        cv_expected_anomalies_count = int(round(cv_df_size * anomalies_ratio, 0))
+        cv_expected_regularities_count = int(round(cv_df_size * whole_dataset_size * (1-anomalies_ratio), 0))
+        test_expected_anomalies_count = int(round(test_df_size * anomalies_ratio, 0))
+        test_expected_regularities_count = int(round(test_df_size * (1-anomalies_ratio), 0))
 
         rem_anomalies = self.pp.filter_by_column(rem_dataset, 'attack', [1])
         rem_regularities = self.pp.filter_by_column(rem_dataset, 'attack', [-1])

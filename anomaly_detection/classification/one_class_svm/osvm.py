@@ -1,9 +1,11 @@
 from datetime import datetime
 
 import pandas as pd
+import os
 from utils.preprocessing import Preprocessing
 from utils.logger import Logger
 from utils.sample_selector import SampleSelector
+from utils.dataframe_utils import DataframeUtils
 from sklearn.externals import joblib
 
 from sklearn import metrics
@@ -13,8 +15,9 @@ from sklearn import svm
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
+dfu = DataframeUtils()
 
-filenames = ["scenario_6.binetflow", "scenario_2.binetflow", "scenario_9.binetflow", "scenario_1.binetflow", "scenario_8.binetflow"]
+filenames = ["scenario_6.binetflow"] #, "scenario_2.binetflow", "scenario_9.binetflow", "scenario_1.binetflow", "scenario_8.binetflow"
 # filenames = ["small_sample1.csv", "small_sample2.csv"]
 
 numerical_features = [
@@ -35,10 +38,13 @@ relevant_features.extend(categorical_features)
 
 for i in range(0, filenames.__len__()):
     analyzed_file = filenames[i]
+    date = datetime.now().strftime("%Y-%m-%d_%H-%M").__str__()
+    directory = "../output/taught-models/" + date
 
-    logger = Logger("../output/taught-models/" + datetime.now().strftime("%Y-%m-%d_%H-%M").__str__() + "-osvm-"
-                    + analyzed_file + ".log")
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
+    logger = Logger(directory + "/" + "osvm-" + analyzed_file + ".log")
 
     logger.log("Prediction script using One Class SVM starts. File: " + analyzed_file)
     logger.log("Features used: " + relevant_features.__str__())
@@ -64,7 +70,10 @@ for i in range(0, filenames.__len__()):
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=300000)
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=300000, test_size=75000)
+    X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
+    X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
+    X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
 
     osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
@@ -82,28 +91,39 @@ for i in range(0, filenames.__len__()):
     logger.log("Learning finished")
 
     # dumping taught model to file, so it may be retrieved later, if it was needed for further examination
-    model_file = "../output/taught-models/" + datetime.now().strftime("%Y-%m-%d_%H-%M").__str__() + "-osvm-" + analyzed_file + ".model"
+    model_file = directory + "/osvm-" + analyzed_file + ".model"
     logger.log("Dumping model to file: " + model_file)
     joblib.dump(model, model_file)
 
     logger.log("Data dumped, now predicting. Sanity check with training data first:")
     X_pred_train = model.predict(X_train)
 
+    logger.log("Predictions for train dataset finished, saving datasets for later analysis")
+    df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
+    df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
+
     logger.log("Assessment:")
     logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
     logger.log("Precision: " + metrics.precision_score(Y_train, X_pred_train).__str__())
     logger.log("Recall: " + metrics.recall_score(Y_train, X_pred_train).__str__())
     logger.log("F1: " + metrics.f1_score(Y_train, X_pred_train).__str__())
-    logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
+    # logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
 
     logger.log("Checking model parameters with test dataset:")
     X_pred_test = model.predict(X_test)
+
+    logger.log("Predictions for test dataset finished, saving datasets for later analysis")
+    df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
+    df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test-with_prediction.csv")
+
     logger.log("Assessment:")
     logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
     logger.log("Precision: " + metrics.precision_score(Y_test, X_pred_test).__str__())
     logger.log("Recall: " + metrics.recall_score(Y_test, X_pred_test).__str__())
     logger.log("F1: " + metrics.f1_score(Y_test, X_pred_test).__str__())
     logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_test, X_pred_test).__str__())
+
+    logger.log("Working on file [" + analyzed_file + "] finished.")
 
 
 

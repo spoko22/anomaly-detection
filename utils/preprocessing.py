@@ -39,3 +39,11 @@ class Preprocessing:
         if df2 is None:
             return df1
         return df1[~df1.index.isin(df2.index)]
+
+    def add_dataframes(self, df1, df2):
+        columns = list(df2.columns.values)
+        for i in range(0, columns.__len__()):
+            column = columns[i]
+            df1[column] = df2[column]
+
+        return df1
