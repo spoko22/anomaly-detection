@@ -17,7 +17,7 @@ preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
 dfu = DataframeUtils()
 
-filenames = ["scenario_6.binetflow"] #, "scenario_2.binetflow", "scenario_9.binetflow", "scenario_1.binetflow", "scenario_8.binetflow"
+filenames = ["scenario_6.binetflow", "scenario_2.binetflow", "scenario_9.binetflow", "scenario_1.binetflow", "scenario_8.binetflow"]
 # filenames = ["small_sample1.csv", "small_sample2.csv"]
 
 numerical_features = [
@@ -70,7 +70,7 @@ for i in range(0, filenames.__len__()):
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=300000, test_size=75000)
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
     X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
     X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
     X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
