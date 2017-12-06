@@ -22,10 +22,13 @@ filenames = ["scenario_6.binetflow", "scenario_2.binetflow", "scenario_9.binetfl
 
 numerical_features = [
     "Dur",
-    "SrcBytes"
+    "SrcBytes",
+    "TotPkts",
+    "TotBytes"
 ]
 
 categorical_features = [
+    "Proto",
     "Dport",
     "Sport",
     "Dir",
