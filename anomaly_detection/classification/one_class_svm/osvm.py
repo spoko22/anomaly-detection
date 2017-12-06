@@ -7,11 +7,13 @@ from utils.logger import Logger
 from utils.sample_selector import SampleSelector
 from utils.dataframe_utils import DataframeUtils
 from sklearn.externals import joblib
+from multiprocessing import Pool
 
 from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
+execution_version = "1.0.1"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -39,10 +41,10 @@ relevant_features = numerical_features[:]
 relevant_features.extend(categorical_features)
 
 
-for i in range(0, filenames.__len__()):
-    analyzed_file = filenames[i]
+def perform_osvm(filename):
+    analyzed_file = filename
     date = datetime.now().strftime("%Y-%m-%d_%H-%M").__str__()
-    directory = "../output/taught-models/" + date
+    directory = "../output/taught-models/" + date + '-' + execution_version + '-' + analyzed_file
 
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -129,6 +131,11 @@ for i in range(0, filenames.__len__()):
     logger.log("Working on file [" + analyzed_file + "] finished.")
 
 
+if __name__ == '__main__':
+    pool = Pool()
+    pool.map(perform_osvm, filenames)
+    pool.close()
+    pool.join()
 
 
 
