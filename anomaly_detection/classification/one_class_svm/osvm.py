@@ -13,13 +13,13 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.0.1"
+execution_version = "1.1.0"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
 dfu = DataframeUtils()
 
-filenames = ["scenario_6.binetflow", "scenario_2.binetflow", "scenario_9.binetflow", "scenario_1.binetflow", "scenario_8.binetflow"]
+filenames = ["scenario_6.binetflow"] #, "scenario_2.binetflow", "scenario_9.binetflow", "scenario_1.binetflow", "scenario_8.binetflow"
 # filenames = ["small_sample1.csv", "small_sample2.csv"]
 
 numerical_features = [
@@ -72,6 +72,9 @@ def perform_osvm(filename):
         preprocessing.transform_non_numerical_column(X, feature)
 
     # TODO: scaling/normalizing/standarizing numerical features
+
+    # feature selection
+    X = preprocessing.feature_selection_chi2(X[relevant_features], X['inlier'], relevant_features.__len__()-1)
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")

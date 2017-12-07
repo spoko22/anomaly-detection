@@ -1,5 +1,7 @@
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 import pandas as pd
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
 
 class Preprocessing:
     le = LabelEncoder()
@@ -47,3 +49,12 @@ class Preprocessing:
             df1[column] = df2[column]
 
         return df1
+
+    def feature_selection_chi2(self, X, Y, result_feature_count):
+        # Create and fit selector
+        selector = SelectKBest(chi2, k=result_feature_count)
+        selector.fit(X, Y)
+        # Get idxs of columns to keep
+        idxs_selected = X.columns[selector.get_support()]
+        # Create new dataframe with only desired columns, or overwrite existing
+        return X[idxs_selected]
