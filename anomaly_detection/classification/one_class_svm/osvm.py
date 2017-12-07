@@ -52,7 +52,7 @@ def perform_osvm(filename):
     logger = Logger(directory + "/" + "osvm-" + analyzed_file + ".log")
 
     logger.log("Prediction script using One Class SVM starts. File: " + analyzed_file)
-    logger.log("Features used: " + relevant_features.__str__())
+    logger.log("Features available: " + relevant_features.__str__())
 
     # reading in data
     logger.log("Reading in data from file: " + analyzed_file)
@@ -74,9 +74,11 @@ def perform_osvm(filename):
     # TODO: scaling/normalizing/standarizing numerical features
 
     # feature selection
+    logger.log("Performing feature selection")
     original_target = X['inlier']
     X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, relevant_features.__len__()-1)
     chosen_features = X.columns.values
+    logger.log("Features used: " + chosen_features.__str__())
     X['inlier'] = original_target
 
     sel = SampleSelector(X)
