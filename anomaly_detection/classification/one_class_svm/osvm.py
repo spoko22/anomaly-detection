@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.1.1"
+execution_version = "1.1.2"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -76,7 +76,7 @@ def perform_osvm(filename):
     # feature selection
     logger.log("Performing feature selection")
     original_target = X['inlier']
-    X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, relevant_features.__len__()-2)
+    X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, relevant_features.__len__()-3)
     chosen_features = X.columns.values
     logger.log("Features used: " + chosen_features.__str__())
     X['inlier'] = original_target
