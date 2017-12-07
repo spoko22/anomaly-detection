@@ -74,7 +74,10 @@ def perform_osvm(filename):
     # TODO: scaling/normalizing/standarizing numerical features
 
     # feature selection
-    X = preprocessing.feature_selection_chi2(X[relevant_features], X['inlier'], relevant_features.__len__()-1)
+    original_target = X['inlier']
+    X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, relevant_features.__len__()-1)
+    chosen_features = X.columns.values
+    X['inlier'] = original_target
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
@@ -90,8 +93,8 @@ def perform_osvm(filename):
     Y_test = X_test['inlier']
 
     # removing all unnecessary features, as well as labels
-    X_train = X_train[relevant_features]
-    X_test = X_test[relevant_features]
+    X_train = X_train[chosen_features]
+    X_test = X_test[chosen_features]
 
     logger.log("Model starts to learn")
     model = osvm.fit(X_train)
