@@ -91,7 +91,7 @@ class SampleSelector:
         test_df_size = test_size if test_size > 1.0 else test_size * whole_dataset_size
 
         cv_expected_anomalies_count = int(round(cv_df_size * anomalies_ratio, 0))
-        cv_expected_regularities_count = int(round(cv_df_size * whole_dataset_size * (1-anomalies_ratio), 0))
+        cv_expected_regularities_count = int(round(cv_df_size * (1-anomalies_ratio), 0))
         test_expected_anomalies_count = int(round(test_df_size * anomalies_ratio, 0))
         test_expected_regularities_count = int(round(test_df_size * (1-anomalies_ratio), 0))
 
