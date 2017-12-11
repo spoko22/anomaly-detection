@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.1.3"
+execution_version = "1.1.4"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -76,14 +76,14 @@ def perform_osvm(filename):
     # feature selection
     logger.log("Performing feature selection")
     original_target = X['inlier']
-    X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, relevant_features.__len__()-4)
+    X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, relevant_features.__len__()-5)
     chosen_features = X.columns.values
     logger.log("Features used: " + chosen_features.__str__())
     X['inlier'] = original_target
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=400000, test_size=100000)
     X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
     X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
     X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
