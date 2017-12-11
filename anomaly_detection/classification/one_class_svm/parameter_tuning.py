@@ -77,32 +77,25 @@ def perform_tuning_using_file(filename):
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=2000000, test_size=50000, cv_size=50000)
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=20000, test_size=5000, cv_size=5000)
     X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
     X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
     X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
 
     # -------------------------------------------------------------------------------------------------------------------
 
-    # Loading the Digits dataset
-    digits =
+    y_train, y_test, y_cv = X_train['inlier'], X_test['inlier'], X_cv['inlier']
 
-    # To apply an classifier on this data, we need to flatten the image, to
-    # turn the data in a (samples, feature) matrix:
-    n_samples = len(digits.images)
-    X = digits.images.reshape((n_samples, -1))
-    y = digits.target
-
-    # Split the dataset in two equal parts
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.5, random_state=0)
+    X_train = X_train[relevant_features]
+    X_cv = X_cv[relevant_features]
+    X_test = X_test[relevant_features]
 
     # Set the parameters by cross-validation
     tuned_parameters = [{'kernel': ['rbf'],
-                         'gamma': [0.1, 1e-2, 1e-3, 1e-4],
-                         'nu': [0.1, 1e-2, 1e-3, 1e-4, 1e-5]}]
+                         'gamma': [0.1, 1e-2],
+                         'nu': [0.1, 5e-2, 1e-2, 1e-3, 1e-4, 1e-5]}]
 
-    scores = ['roc_auc', 'accuracy']
+    scores = ['accuracy', 'recall']
 
     for score in scores:
         print("# Tuning hyper-parameters for %s" % score)
