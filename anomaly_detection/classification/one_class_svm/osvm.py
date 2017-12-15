@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.1.4"
+execution_version = "1.3.0"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -71,19 +71,24 @@ def perform_osvm(filename):
         logger.log("Transforming categorical feature: " + feature)
         preprocessing.transform_non_numerical_column(X, feature)
 
-    # TODO: scaling/normalizing/standarizing numerical features
-
     # feature selection
     logger.log("Performing feature selection")
     original_target = X['inlier']
-    X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, relevant_features.__len__()-5)
+    X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, 5)
     chosen_features = X.columns.values
     logger.log("Features used: " + chosen_features.__str__())
     X['inlier'] = original_target
 
+    # standarization, normalization etc
+    for f_n in range(0, numerical_features.__len__()):
+        feature = numerical_features[f_n]
+        if feature in chosen_features:
+            logger.log("Transforming feature: " + feature)
+            preprocessing.quantile_standarization(X, feature)
+
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=400000, test_size=100000)
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
     X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
     X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
     X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
@@ -121,6 +126,11 @@ def perform_osvm(filename):
     logger.log("Recall: " + metrics.recall_score(Y_train, X_pred_train).__str__())
     logger.log("F1: " + metrics.f1_score(Y_train, X_pred_train).__str__())
     # logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
+    tn, fp, fn, tp = metrics.confusion_matrix(Y_train, X_pred_train).ravel()
+    logger.log("TP: " + tp.__str__())
+    logger.log("TN: " + tn.__str__())
+    logger.log("FP: " + fp.__str__())
+    logger.log("FN: " + fn.__str__())
 
     logger.log("Checking model parameters with test dataset:")
     X_pred_test = model.predict(X_test)
@@ -135,6 +145,11 @@ def perform_osvm(filename):
     logger.log("Recall: " + metrics.recall_score(Y_test, X_pred_test).__str__())
     logger.log("F1: " + metrics.f1_score(Y_test, X_pred_test).__str__())
     logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_test, X_pred_test).__str__())
+    tn, fp, fn, tp = metrics.confusion_matrix(Y_test, X_pred_test).ravel()
+    logger.log("TP: " + tp.__str__())
+    logger.log("TN: " + tn.__str__())
+    logger.log("FP: " + fp.__str__())
+    logger.log("FN: " + fn.__str__())
 
     logger.log("Working on file [" + analyzed_file + "] finished.")
 
