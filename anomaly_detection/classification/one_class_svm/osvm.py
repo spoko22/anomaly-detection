@@ -156,13 +156,11 @@ def perform_osvm(filename):
 
     logger.log("Working on file [" + analyzed_file + "] finished.")
 
-perform_osvm(filenames[0])
-
-# if __name__ == '__main__':
-#     pool = Pool()
-#     pool.map(perform_osvm, filenames)
-#     pool.close()
-#     pool.join()
+if __name__ == '__main__':
+    pool = Pool()
+    pool.map(perform_osvm, filenames)
+    pool.close()
+    pool.join()
 
 
 
