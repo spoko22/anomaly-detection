@@ -7,6 +7,7 @@ from sklearn.preprocessing import QuantileTransformer
 class Preprocessing:
     le = LabelEncoder()
     oneHotEncoder = OneHotEncoder()
+    q_ts = {}
 
     def read_file(self, path):
         return pd.read_csv(path)
@@ -61,6 +62,12 @@ class Preprocessing:
         return X[idxs_selected]
 
     def quantile_standarization(self, dataset, column):
-        q_t = QuantileTransformer()
-        result = q_t.fit_transform(dataset[column].reshape(-1,1))
+
+        if column not in self.q_ts:
+            q_t = QuantileTransformer()
+            self.q_ts[column] = q_t
+            result = q_t.fit_transform(dataset[column].values.reshape(-1, 1))
+        else:
+            q_t = self.q_ts[column]
+            result = q_t.transform(dataset[column].values.reshape(-1, 1))
         dataset[column] = result

@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.3.0"
+execution_version = "1.4.0"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -59,106 +59,110 @@ def perform_osvm(filename):
     original_dataset = pd.read_csv(datasets_path + analyzed_file)
     logger.log("Dataset read")
 
-    X = original_dataset[:]
+    for features_number in range(4, numerical_features.__len__()):
+        X = original_dataset[:]
 
-    # transforming labels
-    logger.log("Transforming labels")
-    preprocessing.transform_labels(X)
+        # transforming labels
+        logger.log("Transforming labels")
+        preprocessing.transform_labels(X)
 
-    # transforming categorical data into numerical data
-    for f_c in range(0, categorical_features.__len__()):
-        feature = categorical_features[f_c]
-        logger.log("Transforming categorical feature: " + feature)
-        preprocessing.transform_non_numerical_column(X, feature)
+        # transforming categorical data into numerical data
+        for f_c in range(0, categorical_features.__len__()):
+            feature = categorical_features[f_c]
+            logger.log("Transforming categorical feature: " + feature)
+            preprocessing.transform_non_numerical_column(X, feature)
 
-    # feature selection
-    logger.log("Performing feature selection")
-    original_target = X['inlier']
-    X = preprocessing.feature_selection_chi2(X[relevant_features], original_target, 5)
-    chosen_features = X.columns.values
-    logger.log("Features used: " + chosen_features.__str__())
-    X['inlier'] = original_target
+        sel = SampleSelector(X)
+        logger.log("Splitting dataset")
+        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
+        X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
+        X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
+        X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
 
-    # standarization, normalization etc
-    for f_n in range(0, numerical_features.__len__()):
-        feature = numerical_features[f_n]
-        if feature in chosen_features:
-            logger.log("Transforming feature: " + feature)
-            preprocessing.quantile_standarization(X, feature)
+        # feature selection
+        logger.log("Performing feature selection")
+        original_target = X_train['inlier']
+        X_train = preprocessing.feature_selection_chi2(X_train[relevant_features], original_target, features_number)
+        chosen_features = X_train.columns.values
+        logger.log("Features used: " + chosen_features.__str__())
+        X_train['inlier'] = original_target
 
-    sel = SampleSelector(X)
-    logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
-    X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
-    X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
-    X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
+        # standarization, normalization etc
+        for f_n in range(0, numerical_features.__len__()):
+            feature = numerical_features[f_n]
+            if feature in chosen_features:
+                logger.log("Transforming feature: " + feature)
+                preprocessing.quantile_standarization(X_train, feature)
+                preprocessing.quantile_standarization(X_test, feature)
+                # preprocessing.quantile_standarization(X_cv, feature)
 
-    osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
+        osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
-    # extracting labels to a separate dataframe
-    Y_train = X_train['inlier']
-    Y_test = X_test['inlier']
+        # extracting labels to a separate dataframe
+        Y_train = X_train['inlier']
+        Y_test = X_test['inlier']
 
-    # removing all unnecessary features, as well as labels
-    X_train = X_train[chosen_features]
-    X_test = X_test[chosen_features]
+        # removing all unnecessary features, as well as labels
+        X_train = X_train[chosen_features]
+        X_test = X_test[chosen_features]
 
-    logger.log("Model starts to learn")
-    model = osvm.fit(X_train)
+        logger.log("Model starts to learn")
+        model = osvm.fit(X_train)
 
-    logger.log("Learning finished")
+        logger.log("Learning finished")
 
-    # dumping taught model to file, so it may be retrieved later, if it was needed for further examination
-    model_file = directory + "/osvm-" + analyzed_file + ".model"
-    logger.log("Dumping model to file: " + model_file)
-    joblib.dump(model, model_file)
+        # dumping taught model to file, so it may be retrieved later, if it was needed for further examination
+        model_file = directory + "/osvm-" + analyzed_file + ".model"
+        logger.log("Dumping model to file: " + model_file)
+        joblib.dump(model, model_file)
 
-    logger.log("Data dumped, now predicting. Sanity check with training data first:")
-    X_pred_train = model.predict(X_train)
+        logger.log("Data dumped, now predicting. Sanity check with training data first:")
+        X_pred_train = model.predict(X_train)
 
-    logger.log("Predictions for train dataset finished, saving datasets for later analysis")
-    df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
-    df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
+        logger.log("Predictions for train dataset finished, saving datasets for later analysis")
+        df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
+        df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
 
-    logger.log("Assessment:")
-    logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
-    logger.log("Precision: " + metrics.precision_score(Y_train, X_pred_train).__str__())
-    logger.log("Recall: " + metrics.recall_score(Y_train, X_pred_train).__str__())
-    logger.log("F1: " + metrics.f1_score(Y_train, X_pred_train).__str__())
-    # logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
-    tn, fp, fn, tp = metrics.confusion_matrix(Y_train, X_pred_train).ravel()
-    logger.log("TP: " + tp.__str__())
-    logger.log("TN: " + tn.__str__())
-    logger.log("FP: " + fp.__str__())
-    logger.log("FN: " + fn.__str__())
+        logger.log("Assessment:")
+        logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
+        logger.log("Precision: " + metrics.precision_score(Y_train, X_pred_train).__str__())
+        logger.log("Recall: " + metrics.recall_score(Y_train, X_pred_train).__str__())
+        logger.log("F1: " + metrics.f1_score(Y_train, X_pred_train).__str__())
+        # logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
+        tn, fp, fn, tp = metrics.confusion_matrix(Y_train, X_pred_train).ravel()
+        logger.log("TP: " + tp.__str__())
+        logger.log("TN: " + tn.__str__())
+        logger.log("FP: " + fp.__str__())
+        logger.log("FN: " + fn.__str__())
 
-    logger.log("Checking model parameters with test dataset:")
-    X_pred_test = model.predict(X_test)
+        logger.log("Checking model parameters with test dataset:")
+        X_pred_test = model.predict(X_test)
 
-    logger.log("Predictions for test dataset finished, saving datasets for later analysis")
-    df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
-    df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test-with_prediction.csv")
+        logger.log("Predictions for test dataset finished, saving datasets for later analysis")
+        df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
+        df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test-with_prediction.csv")
 
-    logger.log("Assessment:")
-    logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
-    logger.log("Precision: " + metrics.precision_score(Y_test, X_pred_test).__str__())
-    logger.log("Recall: " + metrics.recall_score(Y_test, X_pred_test).__str__())
-    logger.log("F1: " + metrics.f1_score(Y_test, X_pred_test).__str__())
-    logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_test, X_pred_test).__str__())
-    tn, fp, fn, tp = metrics.confusion_matrix(Y_test, X_pred_test).ravel()
-    logger.log("TP: " + tp.__str__())
-    logger.log("TN: " + tn.__str__())
-    logger.log("FP: " + fp.__str__())
-    logger.log("FN: " + fn.__str__())
+        logger.log("Assessment:")
+        logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
+        logger.log("Precision: " + metrics.precision_score(Y_test, X_pred_test).__str__())
+        logger.log("Recall: " + metrics.recall_score(Y_test, X_pred_test).__str__())
+        logger.log("F1: " + metrics.f1_score(Y_test, X_pred_test).__str__())
+        logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_test, X_pred_test).__str__())
+        tn, fp, fn, tp = metrics.confusion_matrix(Y_test, X_pred_test).ravel()
+        logger.log("TP: " + tp.__str__())
+        logger.log("TN: " + tn.__str__())
+        logger.log("FP: " + fp.__str__())
+        logger.log("FN: " + fn.__str__())
 
     logger.log("Working on file [" + analyzed_file + "] finished.")
 
+perform_osvm(filenames[0])
 
-if __name__ == '__main__':
-    pool = Pool()
-    pool.map(perform_osvm, filenames)
-    pool.close()
-    pool.join()
+# if __name__ == '__main__':
+#     pool = Pool()
+#     pool.map(perform_osvm, filenames)
+#     pool.close()
+#     pool.join()
 
 
 
