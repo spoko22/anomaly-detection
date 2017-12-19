@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.4.0"
+execution_version = "1.4.1"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -59,7 +59,7 @@ def perform_osvm(filename):
     original_dataset = pd.read_csv(datasets_path + analyzed_file)
     logger.log("Dataset read")
 
-    for features_number in range(4, numerical_features.__len__()):
+    for features_number in range(1, relevant_features.__len__()):
         X = original_dataset[:]
 
         # transforming labels
@@ -79,11 +79,15 @@ def perform_osvm(filename):
         X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
         X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
 
+        X_non_tested = X[:]
+        X_non_tested = preprocessing.get_not_present_values(X_non_tested, X_test)
+        X_non_tested = preprocessing.get_not_present_values(X_non_tested, X_cv)
+
         # feature selection
         logger.log("Performing feature selection")
-        original_target = X_train['inlier']
-        X_train = preprocessing.feature_selection_chi2(X_train[relevant_features], original_target, features_number)
-        chosen_features = X_train.columns.values
+        original_target = X_non_tested['inlier']
+        X_chosen = preprocessing.feature_selection_chi2(X_non_tested[relevant_features], original_target, features_number)
+        chosen_features = X_chosen.columns.values
         logger.log("Features used: " + chosen_features.__str__())
         X_train['inlier'] = original_target
 
