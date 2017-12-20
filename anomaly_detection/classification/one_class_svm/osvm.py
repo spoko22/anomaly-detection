@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.4.1"
+execution_version = "1.4.2"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -59,104 +59,104 @@ def perform_osvm(filename):
     original_dataset = pd.read_csv(datasets_path + analyzed_file)
     logger.log("Dataset read")
 
-    for features_number in range(1, relevant_features.__len__()):
-        X = original_dataset[:]
 
-        # transforming labels
-        logger.log("Transforming labels")
-        preprocessing.transform_labels(X)
+    X = original_dataset[:]
 
-        # transforming categorical data into numerical data
-        for f_c in range(0, categorical_features.__len__()):
-            feature = categorical_features[f_c]
-            logger.log("Transforming categorical feature: " + feature)
-            preprocessing.transform_non_numerical_column(X, feature)
+    # transforming labels
+    logger.log("Transforming labels")
+    preprocessing.transform_labels(X)
 
-        sel = SampleSelector(X)
-        logger.log("Splitting dataset")
-        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
-        X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
-        X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
-        X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
+    # transforming categorical data into numerical data
+    for f_c in range(0, categorical_features.__len__()):
+        feature = categorical_features[f_c]
+        logger.log("Transforming categorical feature: " + feature)
+        preprocessing.transform_non_numerical_column(X, feature)
 
-        X_non_tested = X[:]
-        X_non_tested = preprocessing.get_not_present_values(X_non_tested, X_test)
-        X_non_tested = preprocessing.get_not_present_values(X_non_tested, X_cv)
+    sel = SampleSelector(X)
+    logger.log("Splitting dataset")
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
+    X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
+    X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
+    X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
 
-        # feature selection
-        logger.log("Performing feature selection")
-        original_target = X_non_tested['inlier']
-        X_chosen = preprocessing.feature_selection_chi2(X_non_tested[relevant_features], original_target, features_number)
-        chosen_features = X_chosen.columns.values
-        logger.log("Features used: " + chosen_features.__str__())
-        X_train['inlier'] = original_target
+    X_non_tested = X[:]
+    X_non_tested = preprocessing.get_not_present_values(X_non_tested, X_test)
+    X_non_tested = preprocessing.get_not_present_values(X_non_tested, X_cv)
 
-        # standarization, normalization etc
-        for f_n in range(0, numerical_features.__len__()):
-            feature = numerical_features[f_n]
-            if feature in chosen_features:
-                logger.log("Transforming feature: " + feature)
-                preprocessing.quantile_standarization(X_train, feature)
-                preprocessing.quantile_standarization(X_test, feature)
-                # preprocessing.quantile_standarization(X_cv, feature)
+    # feature selection
+    logger.log("Performing feature selection")
+    original_target = X_non_tested['inlier']
+    X_chosen = preprocessing.feature_selection_chi2(X_non_tested[relevant_features], original_target, 9)
+    chosen_features = X_chosen.columns.values
+    logger.log("Features used: " + chosen_features.__str__())
+    X_train['inlier'] = original_target
 
-        osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
+    # standarization, normalization etc
+    for f_n in range(0, numerical_features.__len__()):
+        feature = numerical_features[f_n]
+        if feature in chosen_features:
+            logger.log("Transforming feature: " + feature)
+            preprocessing.quantile_standarization(X_train, feature)
+            preprocessing.quantile_standarization(X_test, feature)
+            # preprocessing.quantile_standarization(X_cv, feature)
 
-        # extracting labels to a separate dataframe
-        Y_train = X_train['inlier']
-        Y_test = X_test['inlier']
+    osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
-        # removing all unnecessary features, as well as labels
-        X_train = X_train[chosen_features]
-        X_test = X_test[chosen_features]
+    # extracting labels to a separate dataframe
+    Y_train = X_train['inlier']
+    Y_test = X_test['inlier']
 
-        logger.log("Model starts to learn")
-        model = osvm.fit(X_train)
+    # removing all unnecessary features, as well as labels
+    X_train = X_train[chosen_features]
+    X_test = X_test[chosen_features]
 
-        logger.log("Learning finished")
+    logger.log("Model starts to learn")
+    model = osvm.fit(X_train)
 
-        # dumping taught model to file, so it may be retrieved later, if it was needed for further examination
-        model_file = directory + "/osvm-" + analyzed_file + ".model"
-        logger.log("Dumping model to file: " + model_file)
-        joblib.dump(model, model_file)
+    logger.log("Learning finished")
 
-        logger.log("Data dumped, now predicting. Sanity check with training data first:")
-        X_pred_train = model.predict(X_train)
+    # dumping taught model to file, so it may be retrieved later, if it was needed for further examination
+    model_file = directory + "/osvm-" + analyzed_file + ".model"
+    logger.log("Dumping model to file: " + model_file)
+    joblib.dump(model, model_file)
 
-        logger.log("Predictions for train dataset finished, saving datasets for later analysis")
-        df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
-        df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
+    logger.log("Data dumped, now predicting. Sanity check with training data first:")
+    X_pred_train = model.predict(X_train)
 
-        logger.log("Assessment:")
-        logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
-        logger.log("Precision: " + metrics.precision_score(Y_train, X_pred_train).__str__())
-        logger.log("Recall: " + metrics.recall_score(Y_train, X_pred_train).__str__())
-        logger.log("F1: " + metrics.f1_score(Y_train, X_pred_train).__str__())
-        # logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
-        tn, fp, fn, tp = metrics.confusion_matrix(Y_train, X_pred_train).ravel()
-        logger.log("TP: " + tp.__str__())
-        logger.log("TN: " + tn.__str__())
-        logger.log("FP: " + fp.__str__())
-        logger.log("FN: " + fn.__str__())
+    logger.log("Predictions for train dataset finished, saving datasets for later analysis")
+    df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
+    df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
 
-        logger.log("Checking model parameters with test dataset:")
-        X_pred_test = model.predict(X_test)
+    logger.log("Assessment:")
+    logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
+    logger.log("Precision: " + metrics.precision_score(Y_train, X_pred_train).__str__())
+    logger.log("Recall: " + metrics.recall_score(Y_train, X_pred_train).__str__())
+    logger.log("F1: " + metrics.f1_score(Y_train, X_pred_train).__str__())
+    # logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_train, X_pred_train).__str__())
+    tn, fp, fn, tp = metrics.confusion_matrix(Y_train, X_pred_train).ravel()
+    logger.log("TP: " + tp.__str__())
+    logger.log("TN: " + tn.__str__())
+    logger.log("FP: " + fp.__str__())
+    logger.log("FN: " + fn.__str__())
 
-        logger.log("Predictions for test dataset finished, saving datasets for later analysis")
-        df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
-        df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test-with_prediction.csv")
+    logger.log("Checking model parameters with test dataset:")
+    X_pred_test = model.predict(X_test)
 
-        logger.log("Assessment:")
-        logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
-        logger.log("Precision: " + metrics.precision_score(Y_test, X_pred_test).__str__())
-        logger.log("Recall: " + metrics.recall_score(Y_test, X_pred_test).__str__())
-        logger.log("F1: " + metrics.f1_score(Y_test, X_pred_test).__str__())
-        logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_test, X_pred_test).__str__())
-        tn, fp, fn, tp = metrics.confusion_matrix(Y_test, X_pred_test).ravel()
-        logger.log("TP: " + tp.__str__())
-        logger.log("TN: " + tn.__str__())
-        logger.log("FP: " + fp.__str__())
-        logger.log("FN: " + fn.__str__())
+    logger.log("Predictions for test dataset finished, saving datasets for later analysis")
+    df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
+    df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test-with_prediction.csv")
+
+    logger.log("Assessment:")
+    logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
+    logger.log("Precision: " + metrics.precision_score(Y_test, X_pred_test).__str__())
+    logger.log("Recall: " + metrics.recall_score(Y_test, X_pred_test).__str__())
+    logger.log("F1: " + metrics.f1_score(Y_test, X_pred_test).__str__())
+    logger.log("Area under curve (auc): " + metrics.roc_auc_score(Y_test, X_pred_test).__str__())
+    tn, fp, fn, tp = metrics.confusion_matrix(Y_test, X_pred_test).ravel()
+    logger.log("TP: " + tp.__str__())
+    logger.log("TN: " + tn.__str__())
+    logger.log("FP: " + fp.__str__())
+    logger.log("FN: " + fn.__str__())
 
     logger.log("Working on file [" + analyzed_file + "] finished.")
 
