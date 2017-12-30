@@ -74,7 +74,7 @@ def perform_osvm(filename):
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=400000, test_size=100000)
     X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
     X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
     X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
