@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.4.2"
+execution_version = "1.4.3"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -95,9 +95,17 @@ def perform_osvm(filename):
     for f_n in range(0, numerical_features.__len__()):
         feature = numerical_features[f_n]
         if feature in chosen_features:
-            logger.log("Transforming feature: " + feature)
+            logger.log("Quantile standarization of feature: " + feature)
             preprocessing.quantile_standarization(X_train, feature)
             preprocessing.quantile_standarization(X_test, feature)
+            # preprocessing.quantile_standarization(X_cv, feature)
+
+    for f_c in range(0, categorical_features.__len__()):
+        feature = categorical_features[f_c]
+        if feature in chosen_features:
+            logger.log("Removing mean and scaling to unit variance for feature: " + feature)
+            preprocessing.standard_scaler(X_train, feature)
+            preprocessing.standard_scaler(X_test, feature)
             # preprocessing.quantile_standarization(X_cv, feature)
 
     osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
