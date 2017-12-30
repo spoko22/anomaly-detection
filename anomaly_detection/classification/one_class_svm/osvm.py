@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.4.3"
+execution_version = "1.4.4"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
