@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.4.4"
+execution_version = "1.4.5"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -74,7 +74,7 @@ def perform_osvm(filename):
 
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
-    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=400000, test_size=100000)
+    X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
     X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
     X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
     X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
@@ -96,17 +96,18 @@ def perform_osvm(filename):
         feature = numerical_features[f_n]
         if feature in chosen_features:
             logger.log("Quantile standarization of feature: " + feature)
+            preprocessing.quantile_standarization(X_non_tested, feature)
             preprocessing.quantile_standarization(X_train, feature)
             preprocessing.quantile_standarization(X_test, feature)
             # preprocessing.quantile_standarization(X_cv, feature)
 
-    for f_c in range(0, categorical_features.__len__()):
-        feature = categorical_features[f_c]
-        if feature in chosen_features:
-            logger.log("Removing mean and scaling to unit variance for feature: " + feature)
-            preprocessing.standard_scaler(X_train, feature)
-            preprocessing.standard_scaler(X_test, feature)
-            # preprocessing.quantile_standarization(X_cv, feature)
+    # for f_c in range(0, categorical_features.__len__()):
+    #     feature = categorical_features[f_c]
+    #     if feature in chosen_features:
+    #         logger.log("Removing mean and scaling to unit variance for feature: " + feature)
+    #         preprocessing.standard_scaler(X_train, feature)
+    #         preprocessing.standard_scaler(X_test, feature)
+    #         # preprocessing.quantile_standarization(X_cv, feature)
 
     osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
