@@ -3,11 +3,13 @@ import pandas as pd
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 from sklearn.preprocessing import QuantileTransformer
+from sklearn.preprocessing import StandardScaler
 
 class Preprocessing:
     le = LabelEncoder()
     oneHotEncoder = OneHotEncoder()
     q_ts = {}
+    std_scs = {}
 
     def read_file(self, path):
         return pd.read_csv(path)
@@ -70,4 +72,14 @@ class Preprocessing:
         else:
             q_t = self.q_ts[column]
             result = q_t.transform(dataset[column].values.reshape(-1, 1))
+        dataset[column] = result
+
+    def standard_scaler(self, dataset, column):
+        if column not in self.std_scs:
+            std_sc = StandardScaler()
+            self.std_scs[column] = std_sc
+            result = std_sc.fit_transform(dataset[column].values.reshape(-1, 1))
+        else:
+            std_sc = self.std_scs[column]
+            result = std_sc.transform(dataset[column].values.reshape(-1, 1))
         dataset[column] = result
