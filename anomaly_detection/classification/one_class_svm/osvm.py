@@ -79,14 +79,18 @@ def perform_osvm(filename):
     X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
     X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
 
-    X_non_tested = X[:]
-    X_non_tested = preprocessing.get_not_present_values(X_non_tested, X_test)
-    X_non_tested = preprocessing.get_not_present_values(X_non_tested, X_cv)
+    X_non_tested_regularities = X[:]
+    # everything then is based on idea "at the time of learning we only have regularities", thus anomalies should be
+    # filtered out to make sure classifier learns only what it should. Standarization performed on data with anomalies
+    # may be wrong
+    X_non_tested_regularities = preprocessing.filter_by_column(X_non_tested_regularities, 'inlier', [1])
+    X_non_tested_regularities = preprocessing.get_not_present_values(X_non_tested_regularities, X_test)
+    X_non_tested_regularities = preprocessing.get_not_present_values(X_non_tested_regularities, X_cv)
 
     # feature selection
     logger.log("Performing feature selection")
-    original_target = X_non_tested['inlier']
-    X_chosen = preprocessing.feature_selection_chi2(X_non_tested[relevant_features], original_target, 9)
+    original_target = X_non_tested_regularities['inlier']
+    X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features], original_target, 9)
     chosen_features = X_chosen.columns.values
     logger.log("Features used: " + chosen_features.__str__())
     X_train['inlier'] = original_target
@@ -96,7 +100,7 @@ def perform_osvm(filename):
         feature = numerical_features[f_n]
         if feature in chosen_features:
             logger.log("Quantile standarization of feature: " + feature)
-            preprocessing.quantile_standarization(X_non_tested, feature)
+            preprocessing.quantile_standarization(X_non_tested_regularities, feature)
             preprocessing.quantile_standarization(X_train, feature)
             preprocessing.quantile_standarization(X_test, feature)
             # preprocessing.quantile_standarization(X_cv, feature)
