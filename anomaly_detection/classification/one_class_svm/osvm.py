@@ -138,9 +138,9 @@ def perform_osvm(filename):
     logger.log("Data dumped, now predicting. Sanity check with training data first:")
     X_pred_train = model.predict(X_train)
 
-    logger.log("Predictions for train dataset finished, saving datasets for later analysis")
-    df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
-    df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
+    # logger.log("Predictions for train dataset finished, saving datasets for later analysis")
+    # df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
+    # df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
 
     logger.log("Assessment:")
     logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
@@ -157,9 +157,9 @@ def perform_osvm(filename):
     logger.log("Checking model parameters with test dataset:")
     X_pred_test = model.predict(X_test)
 
-    logger.log("Predictions for test dataset finished, saving datasets for later analysis")
-    df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
-    df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test-with_prediction.csv")
+    # logger.log("Predictions for test dataset finished, saving datasets for later analysis")
+    # df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
+    # df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test-with_prediction.csv")
 
     logger.log("Assessment:")
     logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
