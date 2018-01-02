@@ -8,12 +8,13 @@ from utils.sample_selector import SampleSelector
 from utils.dataframe_utils import DataframeUtils
 from sklearn.externals import joblib
 from multiprocessing import Pool
+from sklearn.decomposition import PCA
 
 from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.4.6"
+execution_version = "1.5.0"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -90,15 +91,12 @@ def perform_osvm(filename):
     # feature selection
     logger.log("Performing feature selection")
     original_target = X_non_tested_regularities['inlier']
-    X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features], original_target, 9)
-    chosen_features = X_chosen.columns.values
-    logger.log("Features used: " + chosen_features.__str__())
     X_train['inlier'] = original_target
 
     # standarization, normalization etc
     for f_n in range(0, numerical_features.__len__()):
         feature = numerical_features[f_n]
-        if feature in chosen_features:
+        if feature in relevant_features:
             logger.log("Quantile standarization of feature: " + feature)
             preprocessing.quantile_standarization(X_non_tested_regularities, feature)
             preprocessing.quantile_standarization(X_train, feature)
@@ -113,6 +111,7 @@ def perform_osvm(filename):
     #         preprocessing.standard_scaler(X_test, feature)
     #         # preprocessing.quantile_standarization(X_cv, feature)
 
+    pca = PCA(svd_solver='randomized', whiten=True).fit(X_non_tested_regularities[relevant_features])
     osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
     # extracting labels to a separate dataframe
@@ -120,8 +119,11 @@ def perform_osvm(filename):
     Y_test = X_test['inlier']
 
     # removing all unnecessary features, as well as labels
-    X_train = X_train[chosen_features]
-    X_test = X_test[chosen_features]
+    X_train = X_train[relevant_features]
+    X_test = X_test[relevant_features]
+
+    X_train = pca.transform(X_train)
+    X_test = pca.transform(X_test)
 
     logger.log("Model starts to learn")
     model = osvm.fit(X_train)
