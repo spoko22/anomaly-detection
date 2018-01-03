@@ -20,7 +20,7 @@ preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
 dfu = DataframeUtils()
 
-filenames = ["scenario_6.binetflow"]#, "scenario_2.binetflow", "scenario_9.binetflow", "scenario_1.binetflow", "scenario_8.binetflow"]
+filenames = ["scenario_6.binetflow", "scenario_2.binetflow", "scenario_9.binetflow", "scenario_1.binetflow", "scenario_8.binetflow"]
 # filenames = ["small_sample1.csv", "small_sample2.csv"]
 
 numerical_features = [
