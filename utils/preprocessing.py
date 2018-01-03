@@ -83,3 +83,9 @@ class Preprocessing:
             std_sc = self.std_scs[column]
             result = std_sc.transform(dataset[column].values.reshape(-1, 1))
         dataset[column] = result
+
+    def transform_column_to_dummies(self, dataset, column):
+        # uniques = dataset[column].domain.nunique()
+        dummies = pd.get_dummies(dataset[column], prefix=column)
+        dataset = dataset.drop(column, axis=1)
+        return pd.concat([dataset, pd.DataFrame(data=dummies, index=dataset.index.values)], axis=1), list(dummies.head())

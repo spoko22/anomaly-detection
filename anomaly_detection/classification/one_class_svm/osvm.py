@@ -9,12 +9,14 @@ from utils.dataframe_utils import DataframeUtils
 from sklearn.externals import joblib
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
+from skmca.skmca.skmca import MCA
+import numpy as np
 
 from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 
-execution_version = "1.6.0"
+execution_version = "1.6.1"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -31,16 +33,18 @@ numerical_features = [
 ]
 
 categorical_features = [
-    "Proto",
     "Dport",
-    "Sport",
+    "Sport"
+]
+
+categorical_features_to_dummies = [
+    "Proto",
     "Dir",
     "State"
 ]
 
 relevant_features = numerical_features[:]
 relevant_features.extend(categorical_features)
-
 
 def perform_osvm(filename):
     analyzed_file = filename
@@ -73,6 +77,16 @@ def perform_osvm(filename):
         logger.log("Transforming categorical feature: " + feature)
         preprocessing.transform_non_numerical_column(X, feature)
 
+    dummies = []
+
+    # transforming categorical data into dummies
+    for f_c in range(0, categorical_features_to_dummies.__len__()):
+        feature = categorical_features_to_dummies[f_c]
+        logger.log("Transforming categorical feature: " + feature)
+        X, d = preprocessing.transform_column_to_dummies(X, feature)
+        dummies.extend(d)
+
+    relevant_features.extend(dummies)
     sel = SampleSelector(X)
     logger.log("Splitting dataset")
     X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
@@ -112,6 +126,9 @@ def perform_osvm(filename):
     #         # preprocessing.quantile_standarization(X_cv, feature)
 
     pca = PCA(svd_solver='randomized', whiten=True).fit(X_non_tested_regularities[numerical_features])
+    mca = MCA()
+    mca.fit(X_non_tested_regularities[dummies])
+
     osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
     # extracting labels to a separate dataframe
@@ -125,10 +142,15 @@ def perform_osvm(filename):
     X_train_num = pca.transform(X_train[numerical_features])
     X_test_num = pca.transform(X_test[numerical_features])
 
+    X_train_cat = mca.transform(X_train[dummies])
+    X_test_cat = mca.transform(X_test[dummies])
+
     X_train = X_train[categorical_features]
     X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
+    X_train = pd.concat([X_train, pd.DataFrame(data=X_train_cat, index=X_train.index.values)], axis=1)
     X_test = X_test[categorical_features]
     X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
+    X_test = pd.concat([X_test, pd.DataFrame(data=X_test_cat, index=X_test.index.values)], axis=1)
 
     logger.log("Model starts to learn")
     model = osvm.fit(X_train)
