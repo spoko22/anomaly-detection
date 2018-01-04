@@ -17,7 +17,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 
-execution_version = "1.7.1."
+execution_version = "1.7.2."
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -65,7 +65,7 @@ def perform_osvm(filename):
     original_dataset = pd.read_csv(datasets_path + analyzed_file)
     logger.log("Dataset read")
 
-    for features_number in range(1, 10):
+    for features_number in reversed(range(1, 15)):
         X = original_dataset[:]
 
         # transforming labels
@@ -107,19 +107,21 @@ def perform_osvm(filename):
         original_target = X_non_tested_regularities['inlier']
         X_train['inlier'] = original_target
 
-        X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features], original_target, 9)
-        chosen_features = X_chosen.columns.values
-        logger.log("Features used: " + chosen_features.__str__())
-
         # feature engineering
         for f_c in range(0, categorical_features.__len__()):
             feature = categorical_features[f_c]
-            if feature in X_chosen:
-                logger.log("\"Frequency\" feature engineering performed on: " + feature)
-                X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature)
-                X_train = freq.using_median(X_train, feature)
-                X_test = freq.using_median(X_test, feature)
-                engineered_features.append(feature)
+            new_feature = feature + "_freq"
+            logger.log("\"Frequency\" feature engineering performed on: " + feature)
+            X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature, new_column=new_feature)
+            X_train = freq.using_median(X_train, feature, new_column=new_feature)
+            X_test = freq.using_median(X_test, feature, new_column=new_feature)
+            engineered_features.append(new_feature)
+            relevant_features.append(new_feature)
+
+        X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features],
+                                                        original_target, features_number)
+        chosen_features = X_chosen.columns.values
+        logger.log("Features used: " + chosen_features.__str__())
 
         # standarization, normalization etc
         for f_n in range(0, numerical_features.__len__()):
