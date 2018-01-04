@@ -14,9 +14,9 @@ class FrequencyIndicator:
         new = dataset[:]
 
         if new_column is None:
-            new[column] = new[column].apply(lambda x: vals[x]/median)
+            new[column] = new[column].apply(lambda x: vals[x]/median if x in vals else 0)
         else:
-            new[new_column] = new[column].apply(lambda x: vals[x]/median)
+            new[new_column] = new[column].apply(lambda x: vals[x]/median if x in vals else 0)
             if remove_old:
                 return new.drop(column, axis=1)
         return new

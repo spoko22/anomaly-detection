@@ -15,8 +15,9 @@ import numpy as np
 from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
+from feature_engineering.freq import FrequencyIndicator
 
-execution_version = "1.6.1"
+execution_version = "1.7.0."
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -34,14 +35,14 @@ numerical_features = [
 
 categorical_features = [
     "Dport",
-    "Sport"
-]
-
-categorical_features_to_dummies = [
+    "Sport",
     "Proto",
     "Dir",
     "State"
 ]
+
+categorical_features_to_dummies = []
+engineered_features = []
 
 relevant_features = numerical_features[:]
 relevant_features.extend(categorical_features)
@@ -101,11 +102,19 @@ def perform_osvm(filename):
     X_non_tested_regularities = preprocessing.filter_by_column(X_non_tested_regularities, 'inlier', [1])
     X_non_tested_regularities = preprocessing.get_not_present_values(X_non_tested_regularities, X_test)
     X_non_tested_regularities = preprocessing.get_not_present_values(X_non_tested_regularities, X_cv)
+    freq = FrequencyIndicator(reference_set=X_non_tested_regularities)
 
-    # feature selection
-    logger.log("Performing feature selection")
     original_target = X_non_tested_regularities['inlier']
     X_train['inlier'] = original_target
+
+    # feature engineering
+    for f_c in range(0, categorical_features.__len__()):
+        feature = categorical_features[f_c]
+        logger.log("\"Frequency\" feature engineering performed on: " + feature)
+        X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature)
+        X_train = freq.using_median(X_train, feature)
+        X_test = freq.using_median(X_test, feature)
+        engineered_features.append(feature)
 
     # standarization, normalization etc
     for f_n in range(0, numerical_features.__len__()):
@@ -117,17 +126,16 @@ def perform_osvm(filename):
             preprocessing.quantile_standarization(X_test, feature)
             # preprocessing.quantile_standarization(X_cv, feature)
 
-    # for f_c in range(0, categorical_features.__len__()):
-    #     feature = categorical_features[f_c]
-    #     if feature in chosen_features:
-    #         logger.log("Removing mean and scaling to unit variance for feature: " + feature)
-    #         preprocessing.standard_scaler(X_train, feature)
-    #         preprocessing.standard_scaler(X_test, feature)
-    #         # preprocessing.quantile_standarization(X_cv, feature)
+    for f_e in range(0, engineered_features.__len__()):
+        feature = engineered_features[f_e]
+        if feature in relevant_features:
+            logger.log("Removing mean and scaling to unit variance for feature: " + feature)
+            preprocessing.standard_scaler(X_non_tested_regularities, feature)
+            preprocessing.standard_scaler(X_train, feature)
+            preprocessing.standard_scaler(X_test, feature)
+            # preprocessing.quantile_standarization(X_cv, feature)
 
-    pca = PCA(svd_solver='randomized', whiten=True).fit(X_non_tested_regularities[numerical_features])
-    mca = MCA()
-    mca.fit(X_non_tested_regularities[dummies])
+    # pca = PCA(svd_solver='randomized', whiten=True).fit(X_non_tested_regularities[numerical_features])
 
     osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
@@ -139,18 +147,18 @@ def perform_osvm(filename):
     X_train = X_train[relevant_features]
     X_test = X_test[relevant_features]
 
-    X_train_num = pca.transform(X_train[numerical_features])
-    X_test_num = pca.transform(X_test[numerical_features])
+    # X_train_num = pca.transform(X_train[numerical_features])
+    # X_test_num = pca.transform(X_test[numerical_features])
 
-    X_train_cat = mca.transform(X_train[dummies])
-    X_test_cat = mca.transform(X_test[dummies])
+    # X_train_cat = mca.transform(X_train[dummies])
+    # X_test_cat = mca.transform(X_test[dummies])
 
-    X_train = X_train[categorical_features]
-    X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
-    X_train = pd.concat([X_train, pd.DataFrame(data=X_train_cat, index=X_train.index.values)], axis=1)
-    X_test = X_test[categorical_features]
-    X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
-    X_test = pd.concat([X_test, pd.DataFrame(data=X_test_cat, index=X_test.index.values)], axis=1)
+    # X_train = X_train[categorical_features]
+    # X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
+    # X_train = pd.concat([X_train, pd.DataFrame(data=X_train_cat, index=X_train.index.values)], axis=1)
+    # X_test = X_test[categorical_features]
+    # X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
+    # X_test = pd.concat([X_test, pd.DataFrame(data=X_test_cat, index=X_test.index.values)], axis=1)
 
     logger.log("Model starts to learn")
     model = osvm.fit(X_train)
