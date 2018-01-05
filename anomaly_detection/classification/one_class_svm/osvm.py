@@ -16,8 +16,9 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
+from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.2."
+execution_version = "1.7.3"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -42,7 +43,6 @@ categorical_features = [
 ]
 
 categorical_features_to_dummies = []
-engineered_features = []
 
 relevant_features = numerical_features[:]
 relevant_features.extend(categorical_features)
@@ -65,8 +65,21 @@ def perform_osvm(filename):
     original_dataset = pd.read_csv(datasets_path + analyzed_file)
     logger.log("Dataset read")
 
-    for features_number in reversed(range(1, 15)):
+    # feature engineering on features that are true for every single row, so it should be done before other
+    tech = TechnicalFeatures()
+    original_dataset = tech.rates(original_dataset, "TotBytes", "TotBytesRate")
+    original_dataset = tech.rates(original_dataset, "TotPkts", "TotPktsRate")
+    original_dataset = tech.rates(original_dataset, "SrcBytes", "SrcBytesRate")
+    relevant_features.append("TotBytesRate")
+    relevant_features.append("TotPktsRate")
+    relevant_features.append("SrcBytesRate")
+    numerical_features.append("TotBytesRate")
+    numerical_features.append("TotPktsRate")
+    numerical_features.append("SrcBytesRate")
+
+    for features_number in range(5, 12):
         X = original_dataset[:]
+        engineered_features = []
 
         # transforming labels
         logger.log("Transforming labels")
