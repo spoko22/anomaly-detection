@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.3"
+execution_version = "1.7.4"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -35,6 +35,8 @@ numerical_features = [
 ]
 
 categorical_features = [
+    "SrcAddr",
+    "DstAddr",
     "Dport",
     "Sport",
     "Proto",
@@ -44,8 +46,7 @@ categorical_features = [
 
 categorical_features_to_dummies = []
 
-relevant_features = numerical_features[:]
-relevant_features.extend(categorical_features)
+
 
 def perform_osvm(filename):
     analyzed_file = filename
@@ -58,7 +59,6 @@ def perform_osvm(filename):
     logger = Logger(directory + "/" + "osvm-" + analyzed_file + ".log")
 
     logger.log("Prediction script using One Class SVM starts. File: " + analyzed_file)
-    logger.log("Features available: " + relevant_features.__str__())
 
     # reading in data
     logger.log("Reading in data from file: " + analyzed_file)
@@ -70,16 +70,16 @@ def perform_osvm(filename):
     original_dataset = tech.rates(original_dataset, "TotBytes", "TotBytesRate")
     original_dataset = tech.rates(original_dataset, "TotPkts", "TotPktsRate")
     original_dataset = tech.rates(original_dataset, "SrcBytes", "SrcBytesRate")
-    relevant_features.append("TotBytesRate")
-    relevant_features.append("TotPktsRate")
-    relevant_features.append("SrcBytesRate")
     numerical_features.append("TotBytesRate")
     numerical_features.append("TotPktsRate")
     numerical_features.append("SrcBytesRate")
 
-    for features_number in range(5, 12):
+    for features_number in range(5, categorical_features.__len__() + numerical_features.__len__() + 1):
         X = original_dataset[:]
         engineered_features = []
+        relevant_features = numerical_features[:]
+        relevant_features.extend(categorical_features)
+        logger.log("Features available: " + relevant_features.__str__())
 
         # transforming labels
         logger.log("Transforming labels")
@@ -131,7 +131,7 @@ def perform_osvm(filename):
             engineered_features.append(new_feature)
             relevant_features.append(new_feature)
 
-        X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features],
+        X_chosen = preprocessing.feature_selection_chi2(X[relevant_features],
                                                         original_target, features_number)
         chosen_features = X_chosen.columns.values
         logger.log("Features used: " + chosen_features.__str__())
