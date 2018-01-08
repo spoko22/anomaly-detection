@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.4"
+execution_version = "1.4.3"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -66,15 +66,15 @@ def perform_osvm(filename):
     logger.log("Dataset read")
 
     # feature engineering on features that are true for every single row, so it should be done before other
-    tech = TechnicalFeatures()
-    original_dataset = tech.rates(original_dataset, "TotBytes", "TotBytesRate")
-    original_dataset = tech.rates(original_dataset, "TotPkts", "TotPktsRate")
-    original_dataset = tech.rates(original_dataset, "SrcBytes", "SrcBytesRate")
-    numerical_features.append("TotBytesRate")
-    numerical_features.append("TotPktsRate")
-    numerical_features.append("SrcBytesRate")
+    # tech = TechnicalFeatures()
+    # original_dataset = tech.rates(original_dataset, "TotBytes", "TotBytesRate")
+    # original_dataset = tech.rates(original_dataset, "TotPkts", "TotPktsRate")
+    # original_dataset = tech.rates(original_dataset, "SrcBytes", "SrcBytesRate")
+    # numerical_features.append("TotBytesRate")
+    # numerical_features.append("TotPktsRate")
+    # numerical_features.append("SrcBytesRate")
 
-    for features_number in range(5, categorical_features.__len__() + numerical_features.__len__() + 1):
+    for features_number in range(5, 6):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
@@ -120,30 +120,32 @@ def perform_osvm(filename):
         original_target = X_non_tested_regularities['inlier']
         X_train['inlier'] = original_target
 
-        # feature engineering
-        for f_c in range(0, categorical_features.__len__()):
-            feature = categorical_features[f_c]
-            new_feature = feature + "_freq"
-            logger.log("\"Frequency\" feature engineering performed on: " + feature)
-            X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature, new_column=new_feature)
-            X_train = freq.using_median(X_train, feature, new_column=new_feature)
-            X_test = freq.using_median(X_test, feature, new_column=new_feature)
-            engineered_features.append(new_feature)
-            relevant_features.append(new_feature)
+        # # feature engineering
+        # for f_c in range(0, categorical_features.__len__()):
+        #     feature = categorical_features[f_c]
+        #     new_feature = feature + "_freq"
+        #     logger.log("\"Frequency\" feature engineering performed on: " + feature)
+        #     X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature, new_column=new_feature)
+        #     X_train = freq.using_median(X_train, feature, new_column=new_feature)
+        #     X_test = freq.using_median(X_test, feature, new_column=new_feature)
+        #     engineered_features.append(new_feature)
+        #     relevant_features.append(new_feature)
 
-        X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features],
-                                                        original_target, features_number)
-        chosen_features = X_chosen.columns.values
-        logger.log("Features used: " + chosen_features.__str__())
+        # X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features],
+        #                                                 original_target, features_number)
+        # chosen_features = X_chosen.columns.values
+        # logger.log("Features used: " + chosen_features.__str__())
+
+        chosen_features = relevant_features[:]
 
         # standarization, normalization etc
         for f_n in range(0, numerical_features.__len__()):
             feature = numerical_features[f_n]
             if feature in chosen_features:
                 logger.log("Quantile standarization of feature: " + feature)
-                preprocessing.quantile_standarization(X_non_tested_regularities, feature)
-                preprocessing.quantile_standarization(X_train, feature)
-                preprocessing.quantile_standarization(X_test, feature)
+                preprocessing.standard_scaler(X_non_tested_regularities, feature)
+                preprocessing.standard_scaler(X_train, feature)
+                preprocessing.standard_scaler(X_test, feature)
                 # preprocessing.quantile_standarization(X_cv, feature)
 
         for f_e in range(0, engineered_features.__len__()):
