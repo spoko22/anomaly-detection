@@ -131,7 +131,7 @@ def perform_osvm(filename):
             engineered_features.append(new_feature)
             relevant_features.append(new_feature)
 
-        X_chosen = preprocessing.feature_selection_chi2(X[relevant_features],
+        X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features],
                                                         original_target, features_number)
         chosen_features = X_chosen.columns.values
         logger.log("Features used: " + chosen_features.__str__())
