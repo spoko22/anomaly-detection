@@ -79,7 +79,7 @@ class Preprocessing:
     def normalization(self, dataset, column):
         if column not in self.std_ns:
             std_n = Normalizer()
-            self.std_scs[column] = std_n
+            self.std_ns[column] = std_n
             result = std_n.fit_transform(dataset[column].values.reshape(-1, 1))
         else:
             std_n = self.std_ns[column]
