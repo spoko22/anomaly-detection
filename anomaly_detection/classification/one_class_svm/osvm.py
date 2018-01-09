@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.4.3"
+execution_version = "1.4.4"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -35,8 +35,8 @@ numerical_features = [
 ]
 
 categorical_features = [
-    "SrcAddr",
-    "DstAddr",
+    # "SrcAddr",
+    # "DstAddr",
     "Dport",
     "Sport",
     "Proto",
@@ -143,9 +143,9 @@ def perform_osvm(filename):
             feature = numerical_features[f_n]
             if feature in chosen_features:
                 logger.log("Quantile standarization of feature: " + feature)
-                preprocessing.standard_scaler(X_non_tested_regularities, feature)
-                preprocessing.standard_scaler(X_train, feature)
-                preprocessing.standard_scaler(X_test, feature)
+                preprocessing.normalization(X_non_tested_regularities, feature)
+                preprocessing.normalization(X_train, feature)
+                preprocessing.normalization(X_test, feature)
                 # preprocessing.quantile_standarization(X_cv, feature)
 
         for f_e in range(0, engineered_features.__len__()):
