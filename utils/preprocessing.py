@@ -76,7 +76,7 @@ class Preprocessing:
             result = q_t.transform(dataset[column].values.reshape(-1, 1))
         dataset[column] = result
 
-    def standard_scaler(self, dataset, column):
+    def normalization(self, dataset, column):
         if column not in self.std_ns:
             std_n = Normalizer()
             self.std_scs[column] = std_n
@@ -86,7 +86,7 @@ class Preprocessing:
             result = std_n.transform(dataset[column].values.reshape(-1, 1))
         dataset[column] = result
 
-    def normalization(self, dataset, column):
+    def standard_scaler(self, dataset, column):
         if column not in self.std_scs:
             std_sc = StandardScaler()
             self.std_scs[column] = std_sc
