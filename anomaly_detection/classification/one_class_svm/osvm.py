@@ -107,7 +107,7 @@ def perform_osvm(filename):
         X_non_tested_regularities = preprocessing.get_not_present_values(X_non_tested_regularities, X_cv)
         freq = FrequencyIndicator(reference_set=X_non_tested_regularities)
 
-        original_target = X_non_tested_regularities['inlier']
+        original_target = X['inlier']
         X_train['inlier'] = original_target
 
         # # feature engineering
