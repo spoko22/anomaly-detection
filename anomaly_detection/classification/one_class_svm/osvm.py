@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.4.8"
+execution_version = "1.7.5"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -35,8 +35,8 @@ numerical_features = [
 ]
 
 categorical_features = [
-    # "SrcAddr",
-    # "DstAddr",
+    "SrcAddr",
+    "DstAddr",
     "Dport",
     "Sport",
     "Proto",
@@ -74,7 +74,7 @@ def perform_osvm(filename):
     # numerical_features.append("TotPktsRate")
     # numerical_features.append("SrcBytesRate")
 
-    for features_number in range(5, 6):
+    for features_number in range(3, numerical_features.__len__() + categorical_features.__len__()+1):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
@@ -91,16 +91,6 @@ def perform_osvm(filename):
             logger.log("Transforming categorical feature: " + feature)
             preprocessing.transform_non_numerical_column(X, feature)
 
-        dummies = []
-
-        # transforming categorical data into dummies
-        for f_c in range(0, categorical_features_to_dummies.__len__()):
-            feature = categorical_features_to_dummies[f_c]
-            logger.log("Transforming categorical feature: " + feature)
-            X, d = preprocessing.transform_column_to_dummies(X, feature)
-            dummies.extend(d)
-
-        relevant_features.extend(dummies)
         sel = SampleSelector(X)
         logger.log("Splitting dataset")
         X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
@@ -131,12 +121,10 @@ def perform_osvm(filename):
         #     engineered_features.append(new_feature)
         #     relevant_features.append(new_feature)
 
-        # X_chosen = preprocessing.feature_selection_chi2(X_non_tested_regularities[relevant_features],
-        #                                                 original_target, features_number)
-        # chosen_features = X_chosen.columns.values
-        # logger.log("Features used: " + chosen_features.__str__())
-
-        chosen_features = relevant_features[:]
+        X_chosen = preprocessing.feature_selection_chi2(X[relevant_features],
+                                                        original_target, features_number)
+        chosen_features = X_chosen.columns.values
+        logger.log("Features used: " + chosen_features.__str__())
 
         # standarization, normalization etc
         for f_n in range(0, numerical_features.__len__()):
@@ -198,7 +186,7 @@ def perform_osvm(filename):
         # logger.log("Predictions for train dataset finished, saving datasets for later analysis")
         # df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
         # df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
-
+        logger.log("Features used: " + chosen_features.__str__())
         logger.log("Assessment:")
         logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
         logger.log("Precision: " + metrics.precision_score(Y_train, X_pred_train).__str__())
