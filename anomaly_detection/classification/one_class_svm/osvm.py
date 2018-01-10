@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.5"
+execution_version = "1.7.6"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -42,6 +42,11 @@ categorical_features = [
     "Proto",
     "Dir",
     "State"
+]
+
+categorical_features_to_freq = [
+    "SrcAddr",
+    "DstAddr"
 ]
 
 categorical_features_to_dummies = []
@@ -74,7 +79,7 @@ def perform_osvm(filename):
     # numerical_features.append("TotPktsRate")
     # numerical_features.append("SrcBytesRate")
 
-    for features_number in range(3, numerical_features.__len__() + categorical_features.__len__()+1):
+    for features_number in range(3, 8):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
@@ -111,15 +116,15 @@ def perform_osvm(filename):
         X_train['inlier'] = original_target
 
         # # feature engineering
-        # for f_c in range(0, categorical_features.__len__()):
-        #     feature = categorical_features[f_c]
-        #     new_feature = feature + "_freq"
-        #     logger.log("\"Frequency\" feature engineering performed on: " + feature)
-        #     X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature, new_column=new_feature)
-        #     X_train = freq.using_median(X_train, feature, new_column=new_feature)
-        #     X_test = freq.using_median(X_test, feature, new_column=new_feature)
-        #     engineered_features.append(new_feature)
-        #     relevant_features.append(new_feature)
+        for f_c in range(0, categorical_features_to_freq.__len__()):
+            feature = categorical_features_to_freq[f_c]
+            new_feature = feature + "_freq"
+            logger.log("\"Frequency\" feature engineering performed on: " + feature)
+            X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature, new_column=new_feature)
+            X_train = freq.using_median(X_train, feature, new_column=new_feature)
+            X_test = freq.using_median(X_test, feature, new_column=new_feature)
+            engineered_features.append(new_feature)
+            relevant_features.append(new_feature)
 
         X_chosen = preprocessing.feature_selection_chi2(X[relevant_features],
                                                         original_target, features_number)

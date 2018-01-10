@@ -2,6 +2,7 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 import pandas as pd
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
+from sklearn.feature_selection import mutual_info_classif
 from sklearn.preprocessing import QuantileTransformer
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import Normalizer
@@ -59,6 +60,15 @@ class Preprocessing:
     def feature_selection_chi2(self, X, Y, result_feature_count):
         # Create and fit selector
         selector = SelectKBest(chi2, k=result_feature_count)
+        selector.fit(X, Y)
+        # Get idxs of columns to keep
+        idxs_selected = X.columns[selector.get_support()]
+        # Create new dataframe with only desired columns, or overwrite existing
+        return X[idxs_selected]
+
+    def feature_selection_mutual_info_classif(self, X, Y, result_feature_count):
+        # Create and fit selector
+        selector = SelectKBest(mutual_info_classif, k=result_feature_count)
         selector.fit(X, Y)
         # Get idxs of columns to keep
         idxs_selected = X.columns[selector.get_support()]
