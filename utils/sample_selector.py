@@ -46,6 +46,69 @@ class SampleSelector:
 
         return piece_25min, cv_df, test_df
 
+    def novelty_detection_normal_heavy(self, train_size=0.6, test_size=0.2, cv_size=0.0):
+        normal_dataset = self.pp.filter_by_column(self.dataset, 'inlier', [1])
+        all_normal = len(normal_dataset)
+        background_dataset = self.pp.filter_by_column(self.dataset, 'inlier', [0])
+        botnet_dataset = self.pp.filter_by_column(self.dataset, 'inlier', [-1])
+
+        expected_train_df = train_size
+
+        if (train_size < 1.0) & (train_size > 0.0):
+            expected_train_df = round(self.dataset.__len__() * train_size, 0)
+
+        expected_test_df = test_size
+
+        if (test_size < 1.0) & (test_size > 0.0):
+            expected_test_df = round(self.dataset.__len__() * test_size, 0)
+
+        expected_cv_df = cv_size
+
+        if (cv_size < 1.0) & (cv_size > 0.0):
+            expected_cv_df = round(self.dataset.__len__() * cv_size, 0)
+
+        train_normal_ratio = expected_train_df / (expected_train_df + expected_test_df + expected_cv_df)
+        test_normal_ratio = expected_test_df / (expected_train_df + expected_test_df + expected_cv_df)
+        cv_normal_ratio = expected_cv_df / (expected_train_df + expected_test_df + expected_cv_df)
+
+        desired_normal_count = (expected_train_df + 0.95 * expected_train_df + 0.95 * expected_cv_df)
+
+        normal_count = all_normal if all_normal < desired_normal_count else desired_normal_count
+
+        train_normal_size = int(round(train_normal_ratio*normal_count, 0))
+        test_normal_size = int(round(test_normal_ratio*normal_count*0.95, 0))
+        cv_normal_size = int(round(cv_normal_ratio*normal_count*0.95, 0))
+
+        train_normal_df = normal_dataset.sample(n=train_normal_size)
+        test_normal_df = normal_dataset.sample(n=test_normal_size)
+        cv_normal_df = normal_dataset.sample(n=cv_normal_size)
+
+        test_bot, botnet_dataset = self.__get_rows__(botnet_dataset, [], 0.05 * expected_test_df)
+        cv_bot, botnet_dataset = self.__get_rows__(botnet_dataset, [test_bot], 0.05 * expected_cv_df)
+
+        train_bg, background_dataset = self.__get_rows__(background_dataset, [], expected_train_df - len(train_normal_df))
+        test_bg, background_dataset = self.__get_rows__(background_dataset, [train_bg], expected_test_df - len(test_normal_df) - len(test_bot))
+        cv_bg, background_dataset = self.__get_rows__(background_dataset, [train_bg, test_bg], expected_cv_df - len(cv_normal_df) - len(cv_bot))
+
+        train_normal_df = train_normal_df.append(train_bg)
+        test_normal_df = test_normal_df.append(test_bg)
+        test_normal_df = test_normal_df.append(test_bot)
+        cv_normal_df = cv_normal_df.append(cv_bg)
+        cv_normal_df = cv_normal_df.append(cv_bot)
+
+        self.pp.transform_labels(train_normal_df)
+        self.pp.transform_labels(test_normal_df)
+        self.pp.transform_labels(cv_normal_df)
+
+        return train_normal_df, cv_normal_df, test_normal_df
+
+    def __get_rows__(self, rows, excluded_rows, count):
+        rem_dataset = rows
+        for var in range(0, excluded_rows.__len__()):
+            rem_dataset = self.pp.get_not_present_values(rem_dataset, excluded_rows[var])
+        df = rem_dataset.sample(n=int(count))
+        return df, self.pp.get_not_present_values(rem_dataset, df)
+
     def novelty_detection_random(self, train_size=0.6, test_size=0.2, cv_size=0.0):
         regular_dataset = self.dataset[:]
         regular_dataset = self.pp.filter_by_column(regular_dataset, 'inlier', [1])
