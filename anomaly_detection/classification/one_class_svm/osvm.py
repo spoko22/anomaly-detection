@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "dev-test"
+execution_version = "1.7.7"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
