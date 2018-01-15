@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.6"
+execution_version = "dev-test"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -45,8 +45,8 @@ categorical_features = [
 ]
 
 categorical_features_to_freq = [
-    "SrcAddr",
-    "DstAddr"
+    # "SrcAddr",
+    # "DstAddr"
 ]
 
 categorical_features_to_dummies = []
@@ -88,7 +88,7 @@ def perform_osvm(filename):
 
         # transforming labels
         logger.log("Transforming labels")
-        preprocessing.transform_labels(X)
+        preprocessing.transform_labels_with_normals(X)
 
         # transforming categorical data into numerical data
         for f_c in range(0, categorical_features.__len__()):
@@ -98,10 +98,12 @@ def perform_osvm(filename):
 
         sel = SampleSelector(X)
         logger.log("Splitting dataset")
-        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=200000, test_size=50000)
+        X_train, X_cv, X_test = sel.novelty_detection_normal_heavy(train_size=50000, test_size=12500)
         X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
         X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
         X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
+        clear_distinction = preprocessing.filter_by_column(X, 'inlier', [-1, 1])
+        preprocessing.transform_labels(X)
 
         X_non_tested_regularities = X[:]
         # everything then is based on idea "at the time of learning we only have regularities", thus anomalies should be
@@ -126,8 +128,8 @@ def perform_osvm(filename):
             engineered_features.append(new_feature)
             relevant_features.append(new_feature)
 
-        X_chosen = preprocessing.feature_selection_chi2(X[relevant_features],
-                                                        original_target, features_number)
+        X_chosen = preprocessing.feature_selection_chi2(clear_distinction[relevant_features],
+                                                        clear_distinction['inlier'], features_number)
         chosen_features = X_chosen.columns.values
         logger.log("Features used: " + chosen_features.__str__())
 

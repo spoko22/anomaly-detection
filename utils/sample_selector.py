@@ -86,9 +86,9 @@ class SampleSelector:
         test_bot, botnet_dataset = self.__get_rows__(botnet_dataset, [], 0.05 * expected_test_df)
         cv_bot, botnet_dataset = self.__get_rows__(botnet_dataset, [test_bot], 0.05 * expected_cv_df)
 
-        train_bg, background_dataset = self.__get_rows__(background_dataset, [], expected_train_df - len(train_normal_df))
-        test_bg, background_dataset = self.__get_rows__(background_dataset, [train_bg], expected_test_df - len(test_normal_df) - len(test_bot))
-        cv_bg, background_dataset = self.__get_rows__(background_dataset, [train_bg, test_bg], expected_cv_df - len(cv_normal_df) - len(cv_bot))
+        train_bg, background_dataset = self.__get_rows__(background_dataset, [], expected_train_df - len(train_normal_df) if expected_train_df - len(train_normal_df) > 0 else 0)
+        test_bg, background_dataset = self.__get_rows__(background_dataset, [train_bg], expected_test_df - len(test_normal_df) - len(test_bot) if expected_test_df - len(test_normal_df) - len(test_bot) > 0 else 0)
+        cv_bg, background_dataset = self.__get_rows__(background_dataset, [train_bg, test_bg], expected_cv_df - len(cv_normal_df) - len(cv_bot) if expected_cv_df - len(cv_normal_df) - len(cv_bot) > 0 else 0)
 
         train_normal_df = train_normal_df.append(train_bg)
         test_normal_df = test_normal_df.append(test_bg)
@@ -100,6 +100,8 @@ class SampleSelector:
         self.pp.transform_labels(test_normal_df)
         self.pp.transform_labels(cv_normal_df)
 
+        if len(train_normal_df) != expected_train_df and len(test_normal_df) != expected_test_df and len(cv_normal_df) != expected_cv_df:
+            raise RuntimeError("Wrong size of dataframe")
         return train_normal_df, cv_normal_df, test_normal_df
 
     def __get_rows__(self, rows, excluded_rows, count):
