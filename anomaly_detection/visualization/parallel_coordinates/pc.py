@@ -27,21 +27,27 @@ class PC:
 
         self.preprocessing.filter_by_column(X, "Dir", ["<?>", "<->", "<-"])
 
-        self.preprocessing.transform_labels(X)
+        self.preprocessing.transform_labels_with_normals(X)
+        self.preprocessing.transform_non_numerical_column(X, "DstAddr")
+        self.preprocessing.transform_non_numerical_column(X, "SrcAddr")
         self.preprocessing.transform_non_numerical_column(X, "Dport")
         self.preprocessing.transform_non_numerical_column(X, "Sport")
         self.preprocessing.transform_non_numerical_column(X, "Proto")
         self.preprocessing.transform_non_numerical_column(X, "Dir")
         self.preprocessing.transform_non_numerical_column(X, "State")
 
-        self.preprocessing.normalize_columns(X, self.analyzed_features)  # features normalized to range [0,1], so they may be plotted
+        X = X.dropna(axis=1, how='any')
 
+        for i in range(0, self.analyzed_features.__len__()):
+         self.preprocessing.quantile_standarization(X, self.analyzed_features[i])  # features normalized to range [0,1], so they may be plotted
+
+        self.analyzed_features.append('inlier')
         X_normal = X[:]
         X_anomaly = X[:]
 
         # filter out anomalies to have two distinct plots
-        X_normal = self.preprocessing.filter_by_column(X_normal, "attack", [0])
-        X_anomaly = self.preprocessing.filter_by_column(X_anomaly, "attack", [1])
+        X_normal = self.preprocessing.filter_by_column(X_normal, "inlier", [1])
+        X_anomaly = self.preprocessing.filter_by_column(X_anomaly, "inlier", [-1])
 
         # let's leave only relevant features
         X_normal = X_normal[self.analyzed_features]
@@ -50,14 +56,14 @@ class PC:
         logger.log("Data transforming finished, drawing anomaly plot first")
 
         fig = plt.figure(1)
-        parallel_coordinates(X_anomaly, 'attack')
+        parallel_coordinates(X_anomaly, 'inlier')
         fig.set_size_inches(19.2, 10.8)
         fig.savefig(self.output_path + "\parallel-coordinates_" + filename + "_anomaly.png", dpi=100, bbox_inches='tight')
 
         logger.log("Anomalies drawn, drawing regular data plot")
 
         fig1 = plt.figure(2)
-        parallel_coordinates(X_normal, 'attack')
+        parallel_coordinates(X_normal, 'inlier')
         fig1.set_size_inches(19.2, 10.8)
         fig1.savefig(self.output_path + "\parallel-coordinates_" + filename + "_regular.png", dpi=100, bbox_inches='tight')
 
