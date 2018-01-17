@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.8"
+execution_version = "1.7.9"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -35,8 +35,8 @@ numerical_features = [
 ]
 
 categorical_features = [
-    # "SrcAddr",
-    # "DstAddr",
+    "SrcAddr",
+    "DstAddr",
     "Dport",
     "Sport",
     "Proto",
@@ -45,8 +45,13 @@ categorical_features = [
 ]
 
 categorical_features_to_freq = [
-    # "SrcAddr",
-    # "DstAddr"
+    "SrcAddr",
+    "DstAddr",
+    "Dport",
+    "Sport",
+    "Proto",
+    "Dir",
+    "State"
 ]
 
 categorical_features_to_dummies = []
@@ -79,7 +84,7 @@ def perform_osvm(filename):
     # numerical_features.append("TotPktsRate")
     # numerical_features.append("SrcBytesRate")
 
-    for features_number in range(3, 8):
+    for features_number in reversed(range(3, 10)):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
@@ -125,6 +130,7 @@ def perform_osvm(filename):
             X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature, new_column=new_feature)
             X_train = freq.using_median(X_train, feature, new_column=new_feature)
             X_test = freq.using_median(X_test, feature, new_column=new_feature)
+            clear_distinction = freq.using_median(clear_distinction, feature, new_column=new_feature)
             engineered_features.append(new_feature)
             relevant_features.append(new_feature)
 
