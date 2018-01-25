@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.9"
+execution_version = "1.7.10"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -101,23 +101,28 @@ def perform_osvm(filename):
             logger.log("Transforming categorical feature: " + feature)
             preprocessing.transform_non_numerical_column(X, feature)
 
+        clear_distinction = preprocessing.filter_by_column(X, 'inlier', [-1, 1])
+
         sel = SampleSelector(X)
         logger.log("Splitting dataset")
-        X_train, X_cv, X_test = sel.novelty_detection_normal_heavy(train_size=50000, test_size=12500)
+        X_train, X_cv, X_test = sel.novelty_detection_normal_heavy_ratio_kept(train_size=100000, test_size=100000)
         X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
         X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
         X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
-        clear_distinction = preprocessing.filter_by_column(X, 'inlier', [-1, 1])
         preprocessing.transform_labels(X)
+        preprocessing.transform_labels(X_train)
+        preprocessing.transform_labels(X_cv)
+        preprocessing.transform_labels(X_test)
 
         X_non_tested_regularities = X[:]
         # everything then is based on idea "at the time of learning we only have regularities", thus anomalies should be
         # filtered out to make sure classifier learns only what it should. Standarization performed on data with anomalies
         # may be wrong
         X_non_tested_regularities = preprocessing.filter_by_column(X_non_tested_regularities, 'inlier', [1])
+        X_regularities = X_non_tested_regularities[:]
         X_non_tested_regularities = preprocessing.get_not_present_values(X_non_tested_regularities, X_test)
         X_non_tested_regularities = preprocessing.get_not_present_values(X_non_tested_regularities, X_cv)
-        freq = FrequencyIndicator(reference_set=X_non_tested_regularities)
+        freq = FrequencyIndicator(reference_set=X_regularities)
 
         original_target = X['inlier']
         X_train['inlier'] = original_target
@@ -127,10 +132,10 @@ def perform_osvm(filename):
             feature = categorical_features_to_freq[f_c]
             new_feature = feature + "_freq"
             logger.log("\"Frequency\" feature engineering performed on: " + feature)
-            X_non_tested_regularities = freq.using_median(X_non_tested_regularities, feature, new_column=new_feature)
-            X_train = freq.using_median(X_train, feature, new_column=new_feature)
-            X_test = freq.using_median(X_test, feature, new_column=new_feature)
-            clear_distinction = freq.using_median(clear_distinction, feature, new_column=new_feature)
+            X_non_tested_regularities = freq.using_mean(X_non_tested_regularities, feature, new_column=new_feature)
+            X_train = freq.using_mean(X_train, feature, new_column=new_feature)
+            X_test = freq.using_mean(X_test, feature, new_column=new_feature)
+            clear_distinction = freq.using_mean(clear_distinction, feature, new_column=new_feature)
             engineered_features.append(new_feature)
             relevant_features.append(new_feature)
 
@@ -144,18 +149,18 @@ def perform_osvm(filename):
             feature = numerical_features[f_n]
             if feature in chosen_features:
                 logger.log("Quantile standarization of feature: " + feature)
-                preprocessing.normalization(X_non_tested_regularities, feature)
-                preprocessing.normalization(X_train, feature)
-                preprocessing.normalization(X_test, feature)
+                preprocessing.quantile_standarization(X_non_tested_regularities, feature)
+                preprocessing.quantile_standarization(X_train, feature)
+                preprocessing.quantile_standarization(X_test, feature)
                 # preprocessing.quantile_standarization(X_cv, feature)
 
         for f_e in range(0, engineered_features.__len__()):
             feature = engineered_features[f_e]
             if feature in chosen_features:
                 logger.log("Removing mean and scaling to unit variance for feature: " + feature)
-                preprocessing.standard_scaler(X_non_tested_regularities, feature)
-                preprocessing.standard_scaler(X_train, feature)
-                preprocessing.standard_scaler(X_test, feature)
+                preprocessing.quantile_standarization(X_non_tested_regularities, feature)
+                preprocessing.quantile_standarization(X_train, feature)
+                preprocessing.quantile_standarization(X_test, feature)
                 # preprocessing.quantile_standarization(X_cv, feature)
 
         # pca = PCA(svd_solver='randomized', whiten=True).fit(X_non_tested_regularities[numerical_features])
@@ -189,16 +194,16 @@ def perform_osvm(filename):
         logger.log("Learning finished")
 
         # dumping taught model to file, so it may be retrieved later, if it was needed for further examination
-        model_file = directory + "/osvm-" + analyzed_file + ".model"
+        model_file = directory + "/osvm-" + analyzed_file + "-fn-" + features_number.__str__() + ".model"
         logger.log("Dumping model to file: " + model_file)
         joblib.dump(model, model_file)
 
         logger.log("Data dumped, now predicting. Sanity check with training data first:")
         X_pred_train = model.predict(X_train)
 
-        # logger.log("Predictions for train dataset finished, saving datasets for later analysis")
-        # df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
-        # df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train-with_prediction.csv")
+        logger.log("Predictions for train dataset finished, saving datasets for later analysis")
+        df_train = dfu.merge_results(X_train, Y_train, X_pred_train)
+        df_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-fn-" + features_number.__str__() + "-train-with_prediction.csv")
         logger.log("Features used: " + chosen_features.__str__())
         logger.log("Assessment:")
         logger.log("Accuracy: " + metrics.accuracy_score(Y_train, X_pred_train).__str__())
@@ -215,9 +220,9 @@ def perform_osvm(filename):
         logger.log("Checking model parameters with test dataset:")
         X_pred_test = model.predict(X_test)
 
-        # logger.log("Predictions for test dataset finished, saving datasets for later analysis")
-        # df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
-        # df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test-with_prediction.csv")
+        logger.log("Predictions for test dataset finished, saving datasets for later analysis")
+        df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
+        df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-fn-" + features_number.__str__() + "-test-with_prediction.csv")
 
         logger.log("Assessment:")
         logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())

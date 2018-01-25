@@ -46,6 +46,38 @@ class SampleSelector:
 
         return piece_25min, cv_df, test_df
 
+    def novelty_detection_normal_heavy_ratio_kept(self, train_size=0.6, test_size=0.2, cv_size=0.0):
+        regular_dataset = self.dataset[:]
+        regular_dataset = self.pp.filter_by_column(regular_dataset, 'inlier', [1])
+
+        expected_train_df = train_size
+
+        if (train_size < 1.0) & (train_size > 0.0):
+            expected_train_df = round(self.dataset.__len__() * train_size, 0)
+
+        expected_test_df = test_size
+
+        if (test_size < 1.0) & (test_size > 0.0):
+            expected_test_df = round(self.dataset.__len__() * test_size, 0)
+
+        expected_cv_df = cv_size
+
+        if (cv_size < 1.0) & (cv_size > 0.0):
+            expected_cv_df = round(self.dataset.__len__() * cv_size, 0)
+
+        train_df = regular_dataset[:]
+        bgs = self.pp.filter_by_column(self.dataset, 'inlier', [0]).sample(n=expected_train_df-len(train_df))
+        train_df = train_df.append(bgs)
+
+        value_counts = self.dataset['inlier'].value_counts()
+        anomalies_ratio = self.__count_anomaly_ratio_with_normals__(value_counts)
+
+        cv_df, test_df = self.__produce_datasets(excluded_rows=train_df,
+                                                 anomalies_ratio=anomalies_ratio,
+                                                 test_size=expected_test_df, cv_size=expected_cv_df)
+
+        return train_df, cv_df, test_df
+
     def novelty_detection_normal_heavy(self, train_size=0.6, test_size=0.2, cv_size=0.0):
         normal_dataset = self.pp.filter_by_column(self.dataset, 'inlier', [1])
         all_normal = len(normal_dataset)
@@ -108,7 +140,10 @@ class SampleSelector:
         rem_dataset = rows
         for var in range(0, excluded_rows.__len__()):
             rem_dataset = self.pp.get_not_present_values(rem_dataset, excluded_rows[var])
-        df = rem_dataset.sample(n=int(count))
+        if int(count) > 0:
+            df = rem_dataset.sample(n=int(count))
+        else:
+            df = pd.DataFrame(columns=rem_dataset.columns.values)
         return df, self.pp.get_not_present_values(rem_dataset, df)
 
     def novelty_detection_random(self, train_size=0.6, test_size=0.2, cv_size=0.0):
@@ -148,6 +183,13 @@ class SampleSelector:
 
         return anomalies/all
 
+    def __count_anomaly_ratio_with_normals__(self, counts):
+        anomalies = counts[-1]
+        normal = counts[1] + counts[0]
+        all = normal + anomalies
+
+        return anomalies/all
+
     def __produce_datasets(self, excluded_rows=None, anomalies_ratio=0.05, test_size=0.2, cv_size=0.0):
         rem_dataset = self.pp.get_not_present_values(self.dataset, excluded_rows)
         whole_dataset_size = self.dataset.shape[0]
@@ -161,7 +203,7 @@ class SampleSelector:
         test_expected_regularities_count = int(round(test_df_size * (1-anomalies_ratio), 0))
 
         rem_anomalies = self.pp.filter_by_column(rem_dataset, 'inlier', [-1])
-        rem_regularities = self.pp.filter_by_column(rem_dataset, 'inlier', [1])
+        rem_regularities = self.pp.filter_by_column(rem_dataset, 'inlier', [0, 1])
 
         test_anomalies = rem_anomalies.sample(n=test_expected_anomalies_count)
         rem_anomalies = self.pp.get_not_present_values(rem_anomalies, test_anomalies)
