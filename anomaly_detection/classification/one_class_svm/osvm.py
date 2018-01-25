@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.10"
+execution_version = "1.7.11"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -76,20 +76,19 @@ def perform_osvm(filename):
     logger.log("Dataset read")
 
     # feature engineering on features that are true for every single row, so it should be done before other
-    # tech = TechnicalFeatures()
-    # original_dataset = tech.rates(original_dataset, "TotBytes", "TotBytesRate")
-    # original_dataset = tech.rates(original_dataset, "TotPkts", "TotPktsRate")
-    # original_dataset = tech.rates(original_dataset, "SrcBytes", "SrcBytesRate")
-    # numerical_features.append("TotBytesRate")
-    # numerical_features.append("TotPktsRate")
-    # numerical_features.append("SrcBytesRate")
+    tech = TechnicalFeatures()
+    original_dataset = tech.rates(original_dataset, "TotBytes", "TotBytesRate")
+    original_dataset = tech.rates(original_dataset, "TotPkts", "TotPktsRate")
+    original_dataset = tech.rates(original_dataset, "SrcBytes", "SrcBytesRate")
+    numerical_features.append("TotBytesRate")
+    numerical_features.append("TotPktsRate")
+    numerical_features.append("SrcBytesRate")
 
-    for features_number in reversed(range(3, 10)):
+    for features_number in reversed(range(3, 12)):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
         relevant_features.extend(categorical_features)
-        logger.log("Features available: " + relevant_features.__str__())
 
         # transforming labels
         logger.log("Transforming labels")
@@ -142,6 +141,8 @@ def perform_osvm(filename):
         X_chosen = preprocessing.feature_selection_chi2(clear_distinction[relevant_features],
                                                         clear_distinction['inlier'], features_number)
         chosen_features = X_chosen.columns.values
+
+        logger.log("Features available: " + relevant_features.__str__())
         logger.log("Features used: " + chosen_features.__str__())
 
         # standarization, normalization etc
@@ -163,7 +164,6 @@ def perform_osvm(filename):
                 preprocessing.quantile_standarization(X_test, feature)
                 # preprocessing.quantile_standarization(X_cv, feature)
 
-        # pca = PCA(svd_solver='randomized', whiten=True).fit(X_non_tested_regularities[numerical_features])
 
         osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
@@ -175,18 +175,25 @@ def perform_osvm(filename):
         X_train = X_train[chosen_features]
         X_test = X_test[chosen_features]
 
-        # X_train_num = pca.transform(X_train[numerical_features])
-        # X_test_num = pca.transform(X_test[numerical_features])
+        chosen_numerical = []
+        chosen_categorical = []
 
-        # X_train_cat = mca.transform(X_train[dummies])
-        # X_test_cat = mca.transform(X_test[dummies])
+        for c in range(0, chosen_features.__len__()):
+            chosen = chosen_features[c]
+            if chosen in categorical_features:
+                chosen_categorical.append(chosen)
+            if chosen in numerical_features:
+                chosen_numerical.append(chosen)
 
-        # X_train = X_train[categorical_features]
-        # X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
-        # X_train = pd.concat([X_train, pd.DataFrame(data=X_train_cat, index=X_train.index.values)], axis=1)
-        # X_test = X_test[categorical_features]
-        # X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
-        # X_test = pd.concat([X_test, pd.DataFrame(data=X_test_cat, index=X_test.index.values)], axis=1)
+        pca = PCA(whiten=False).fit(X_train[chosen_numerical])
+
+        X_train_num = pca.transform(X_train[chosen_numerical])
+        X_test_num = pca.transform(X_test[chosen_numerical])
+
+        X_train = X_train[chosen_categorical]
+        X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
+        X_test = X_test[chosen_categorical]
+        X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
 
         logger.log("Model starts to learn")
         model = osvm.fit(X_train)
