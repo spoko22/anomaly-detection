@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.11"
+execution_version = "1.7.12"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -54,8 +54,30 @@ categorical_features_to_freq = [
     "State"
 ]
 
+binary_features = [
+
+]
+
 categorical_features_to_dummies = []
 
+def add_technical_features(dataset, numerical_features, categorical_features, binary_features):
+    tech = TechnicalFeatures()
+    is_http = "is_http"
+    is_email = "is_email"
+    is_irc = "is_irc"
+    tech.add_is_http(dataset, is_http)
+    binary_features.append(is_http)
+    tech.add_is_email(dataset, is_email)
+    binary_features.append(is_email)
+    tech.add_is_irc(dataset, is_irc)
+    binary_features.append(is_irc)
+    dataset = tech.rates(dataset, "TotBytes", "TotBytesRate")
+    dataset = tech.rates(dataset, "TotPkts", "TotPktsRate")
+    dataset = tech.rates(dataset, "SrcBytes", "SrcBytesRate")
+    numerical_features.append("TotBytesRate")
+    numerical_features.append("TotPktsRate")
+    numerical_features.append("SrcBytesRate")
+    return dataset
 
 
 def perform_osvm(filename):
@@ -76,19 +98,14 @@ def perform_osvm(filename):
     logger.log("Dataset read")
 
     # feature engineering on features that are true for every single row, so it should be done before other
-    tech = TechnicalFeatures()
-    original_dataset = tech.rates(original_dataset, "TotBytes", "TotBytesRate")
-    original_dataset = tech.rates(original_dataset, "TotPkts", "TotPktsRate")
-    original_dataset = tech.rates(original_dataset, "SrcBytes", "SrcBytesRate")
-    numerical_features.append("TotBytesRate")
-    numerical_features.append("TotPktsRate")
-    numerical_features.append("SrcBytesRate")
+    original_dataset = add_technical_features(original_dataset, numerical_features, categorical_features, binary_features)
 
     for features_number in reversed(range(3, 12)):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
         relevant_features.extend(categorical_features)
+        relevant_features.extend(binary_features)
 
         # transforming labels
         logger.log("Transforming labels")
