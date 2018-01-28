@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.12"
+execution_version = "1.7.14"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -74,9 +74,14 @@ def add_technical_features(dataset, numerical_features, categorical_features, bi
     dataset = tech.rates(dataset, "TotBytes", "TotBytesRate")
     dataset = tech.rates(dataset, "TotPkts", "TotPktsRate")
     dataset = tech.rates(dataset, "SrcBytes", "SrcBytesRate")
+    dataset = tech.rates(dataset, "TotBytes", "TotBytesPerPacket", duration_col="TotPkts")
+    dataset = tech.rates(dataset, "SrcBytes", "SrcBytesPerPacket", duration_col="TotPkts")
     numerical_features.append("TotBytesRate")
     numerical_features.append("TotPktsRate")
     numerical_features.append("SrcBytesRate")
+    numerical_features.append("TotBytesPerPacket")
+    numerical_features.append("SrcBytesPerPacket")
+
     return dataset
 
 
@@ -157,7 +162,8 @@ def perform_osvm(filename):
 
         X_chosen = preprocessing.feature_selection_chi2(clear_distinction[relevant_features],
                                                         clear_distinction['inlier'], features_number)
-        chosen_features = X_chosen.columns.values
+        chosen_features = list(X_chosen.columns.values)
+        chosen_features.extend(binary_features)
 
         logger.log("Features available: " + relevant_features.__str__())
         logger.log("Features used: " + chosen_features.__str__())
