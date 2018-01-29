@@ -72,7 +72,7 @@ class Preprocessing:
         # Create new dataframe with only desired columns, or overwrite existing
         return X[idxs_selected]
 
-    def feature_selection_mutual_info_classif(self, X, Y, result_feature_count):
+    def feature_selection_mutual_info(self, X, Y, result_feature_count, discrete_mask):
         # Create and fit selector
         selector = SelectKBest(mutual_info_classif, k=result_feature_count)
         selector.fit(X, Y)

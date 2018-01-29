@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.14"
+execution_version = "1.8.0"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -105,7 +105,7 @@ def perform_osvm(filename):
     # feature engineering on features that are true for every single row, so it should be done before other
     original_dataset = add_technical_features(original_dataset, numerical_features, categorical_features, binary_features)
 
-    for features_number in reversed(range(3, 12)):
+    for features_number in reversed(range(3, 14)):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
@@ -148,7 +148,7 @@ def perform_osvm(filename):
         original_target = X['inlier']
         X_train['inlier'] = original_target
 
-        # # feature engineering
+        # feature engineering
         for f_c in range(0, categorical_features_to_freq.__len__()):
             feature = categorical_features_to_freq[f_c]
             new_feature = feature + "_freq"
@@ -160,8 +160,13 @@ def perform_osvm(filename):
             engineered_features.append(new_feature)
             relevant_features.append(new_feature)
 
-        X_chosen = preprocessing.feature_selection_chi2(clear_distinction[relevant_features],
-                                                        clear_distinction['inlier'], features_number)
+        discrete_mask = []
+        for rf in range(0, relevant_features.__len__()):
+            val = True if relevant_features[rf] in categorical_features else False
+            discrete_mask.append(val)
+
+        X_chosen = preprocessing.feature_selection_mutual_info(clear_distinction[relevant_features],
+                                                        clear_distinction['inlier'], features_number, discrete_mask)
         chosen_features = list(X_chosen.columns.values)
         chosen_features.extend(binary_features)
 
