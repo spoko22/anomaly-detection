@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.16"
+execution_version = "1.7.16-random-sets"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -128,7 +128,7 @@ def perform_osvm(filename):
 
         sel = SampleSelector(X)
         logger.log("Splitting dataset")
-        X_train, X_cv, X_test = sel.novelty_detection_normal_heavy_ratio_kept(train_size=100000, test_size=100000)
+        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=100000, test_size=100000)
         X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
         X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
         X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
