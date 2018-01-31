@@ -125,6 +125,7 @@ def perform_osvm(filename):
             preprocessing.transform_non_numerical_column(X, feature)
 
         clear_distinction = preprocessing.filter_by_column(X, 'inlier', [-1, 1])
+        preprocessing.transform_labels(X)
 
         sel = SampleSelector(X)
         logger.log("Splitting dataset")
@@ -132,10 +133,10 @@ def perform_osvm(filename):
         X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
         X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
         X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
-        preprocessing.transform_labels(X)
-        preprocessing.transform_labels(X_train)
-        preprocessing.transform_labels(X_cv)
-        preprocessing.transform_labels(X_test)
+        # preprocessing.transform_labels(X)
+        # preprocessing.transform_labels(X_train)
+        # preprocessing.transform_labels(X_cv)
+        # preprocessing.transform_labels(X_test)
 
         X_non_tested_regularities = X[:]
         # everything then is based on idea "at the time of learning we only have regularities", thus anomalies should be
