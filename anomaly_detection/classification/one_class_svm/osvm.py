@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.8.0"
+execution_version = "1.7.16"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -76,11 +76,13 @@ def add_technical_features(dataset, numerical_features, categorical_features, bi
     dataset = tech.rates(dataset, "SrcBytes", "SrcBytesRate")
     dataset = tech.rates(dataset, "TotBytes", "TotBytesPerPacket", duration_col="TotPkts")
     dataset = tech.rates(dataset, "SrcBytes", "SrcBytesPerPacket", duration_col="TotPkts")
+    dataset = tech.subtraction(dataset, "TotBytes", "SrcBytes", "PacketOverhead")
     numerical_features.append("TotBytesRate")
     numerical_features.append("TotPktsRate")
     numerical_features.append("SrcBytesRate")
     numerical_features.append("TotBytesPerPacket")
     numerical_features.append("SrcBytesPerPacket")
+    numerical_features.append("PacketOverhead")
 
     return dataset
 
@@ -103,9 +105,9 @@ def perform_osvm(filename):
     logger.log("Dataset read")
 
     # feature engineering on features that are true for every single row, so it should be done before other
-    original_dataset = add_technical_features(original_dataset, numerical_features, categorical_features, binary_features)
+    # original_dataset = add_technical_features(original_dataset, numerical_features, categorical_features, binary_features)
 
-    for features_number in reversed(range(3, 14)):
+    for features_number in reversed(range(3, 8)):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
@@ -148,27 +150,22 @@ def perform_osvm(filename):
         original_target = X['inlier']
         X_train['inlier'] = original_target
 
-        # feature engineering
-        for f_c in range(0, categorical_features_to_freq.__len__()):
-            feature = categorical_features_to_freq[f_c]
-            new_feature = feature + "_freq"
-            logger.log("\"Frequency\" feature engineering performed on: " + feature)
-            X_non_tested_regularities = freq.using_mean(X_non_tested_regularities, feature, new_column=new_feature)
-            X_train = freq.using_mean(X_train, feature, new_column=new_feature)
-            X_test = freq.using_mean(X_test, feature, new_column=new_feature)
-            clear_distinction = freq.using_mean(clear_distinction, feature, new_column=new_feature)
-            engineered_features.append(new_feature)
-            relevant_features.append(new_feature)
+        # # feature engineering
+        # for f_c in range(0, categorical_features_to_freq.__len__()):
+        #     feature = categorical_features_to_freq[f_c]
+        #     new_feature = feature + "_freq"
+        #     logger.log("\"Frequency\" feature engineering performed on: " + feature)
+        #     X_non_tested_regularities = freq.using_mean(X_non_tested_regularities, feature, new_column=new_feature)
+        #     X_train = freq.using_mean(X_train, feature, new_column=new_feature)
+        #     X_test = freq.using_mean(X_test, feature, new_column=new_feature)
+        #     clear_distinction = freq.using_mean(clear_distinction, feature, new_column=new_feature)
+        #     engineered_features.append(new_feature)
+        #     relevant_features.append(new_feature)
 
-        discrete_mask = []
-        for rf in range(0, relevant_features.__len__()):
-            val = True if relevant_features[rf] in categorical_features else False
-            discrete_mask.append(val)
+        X_chosen = preprocessing.feature_selection_chi2(clear_distinction[relevant_features],
+                                                        clear_distinction['inlier'], features_number)
 
-        X_chosen = preprocessing.feature_selection_mutual_info(clear_distinction[relevant_features],
-                                                        clear_distinction['inlier'], features_number, discrete_mask)
         chosen_features = list(X_chosen.columns.values)
-        chosen_features.extend(binary_features)
 
         logger.log("Features available: " + relevant_features.__str__())
         logger.log("Features used: " + chosen_features.__str__())
@@ -213,15 +210,15 @@ def perform_osvm(filename):
             if chosen in numerical_features:
                 chosen_numerical.append(chosen)
 
-        pca = PCA(whiten=False).fit(X_train[chosen_numerical])
-
-        X_train_num = pca.transform(X_train[chosen_numerical])
-        X_test_num = pca.transform(X_test[chosen_numerical])
-
-        X_train = X_train[chosen_categorical]
-        X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
-        X_test = X_test[chosen_categorical]
-        X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
+        # pca = PCA(whiten=False).fit(X_train[chosen_numerical])
+        #
+        # X_train_num = pca.transform(X_train[chosen_numerical])
+        # X_test_num = pca.transform(X_test[chosen_numerical])
+        #
+        # X_train = X_train[chosen_categorical]
+        # X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
+        # X_test = X_test[chosen_categorical]
+        # X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
 
         logger.log("Model starts to learn")
         model = osvm.fit(X_train)
