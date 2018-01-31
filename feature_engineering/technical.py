@@ -11,6 +11,15 @@ class TechnicalFeatures:
             dataset[column] = result.replace([np.inf, -np.inf, np.nan], 0)
         return dataset
 
+     def subtraction(self, orig_dataset, column1, column2, new_column=None):
+         dataset = orig_dataset[:]
+         if new_column is not None:
+             dataset[new_column] = dataset[column1] - dataset[column2]
+         else:
+             result = dataset[column1] - dataset[column2]
+             dataset[column1] = result
+         return dataset
+
      def add_is_http(self, dataset, new_column):
          dataset.loc[self.__is_http__(dataset), new_column] = 1
          dataset.loc[~self.__is_http__(dataset), new_column] = 0
