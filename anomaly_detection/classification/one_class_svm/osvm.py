@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.10-random-sets"
+execution_version = "1.7.14-no-IP"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -35,8 +35,8 @@ numerical_features = [
 ]
 
 categorical_features = [
-    "SrcAddr",
-    "DstAddr",
+    # "SrcAddr",
+    # "DstAddr",
     "Dport",
     "Sport",
     "Proto",
@@ -45,8 +45,8 @@ categorical_features = [
 ]
 
 categorical_features_to_freq = [
-    "SrcAddr",
-    "DstAddr",
+    # "SrcAddr",
+    # "DstAddr",
     "Dport",
     "Sport",
     "Proto",
@@ -76,13 +76,13 @@ def add_technical_features(dataset, numerical_features, categorical_features, bi
     dataset = tech.rates(dataset, "SrcBytes", "SrcBytesRate")
     dataset = tech.rates(dataset, "TotBytes", "TotBytesPerPacket", duration_col="TotPkts")
     dataset = tech.rates(dataset, "SrcBytes", "SrcBytesPerPacket", duration_col="TotPkts")
-    # dataset = tech.subtraction(dataset, "TotBytes", "SrcBytes", "PacketOverhead")
+    dataset = tech.subtraction(dataset, "TotBytes", "SrcBytes", "PacketOverhead")
     numerical_features.append("TotBytesRate")
     numerical_features.append("TotPktsRate")
     numerical_features.append("SrcBytesRate")
     numerical_features.append("TotBytesPerPacket")
     numerical_features.append("SrcBytesPerPacket")
-    # numerical_features.append("PacketOverhead")
+    numerical_features.append("PacketOverhead")
 
     return dataset
 
@@ -107,7 +107,7 @@ def perform_osvm(filename):
     # feature engineering on features that are true for every single row, so it should be done before other
     # original_dataset = add_technical_features(original_dataset, numerical_features, categorical_features, binary_features)
 
-    for features_number in reversed(range(3, 11)):
+    for features_number in range(3, 11):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
