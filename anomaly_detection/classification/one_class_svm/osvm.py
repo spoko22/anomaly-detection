@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.14-no-IP"
+execution_version = "1.7.17"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -47,11 +47,11 @@ categorical_features = [
 categorical_features_to_freq = [
     # "SrcAddr",
     # "DstAddr",
-    "Dport",
-    "Sport",
-    "Proto",
-    "Dir",
-    "State"
+    # "Dport",
+    # "Sport",
+    # "Proto",
+    # "Dir",
+    # "State"
 ]
 
 binary_features = [
