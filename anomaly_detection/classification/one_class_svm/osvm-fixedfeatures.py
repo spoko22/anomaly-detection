@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.8.1-parameter-tuning"
+execution_version = "1.8.1-parameter-tuning-2"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -68,8 +68,8 @@ fixed_features = {
     "scenario_9.binetflow": ['TotBytes', 'TotBytesRate', 'SrcBytesRate', 'SrcAddr']
 }
 
-gamma = [0.1, 0.2, 0.5]
-nu = [0.0001, 0.001, 0.005, 0.01, 0.05, 0.1]
+gamma = [0.05, 0.1, 0.2]
+nu = [0.01, 0.05, 0.1]
 
 tuned_parameters = []
 
@@ -143,17 +143,18 @@ def perform_osvm(filename):
             preprocessing.transform_non_numerical_column(X, feature)
 
         clear_distinction = preprocessing.filter_by_column(X, 'inlier', [-1, 1])
+        preprocessing.transform_labels(X)
 
         sel = SampleSelector(X)
         logger.log("Splitting dataset")
-        X_train, X_cv, X_test = sel.novelty_detection_normal_heavy_ratio_kept(train_size=100000, test_size=100000)
+        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=100000, test_size=100000)
         X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
         X_cv.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-cv.csv")
         X_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-test.csv")
-        preprocessing.transform_labels(X)
-        preprocessing.transform_labels(X_train)
-        preprocessing.transform_labels(X_cv)
-        preprocessing.transform_labels(X_test)
+        # preprocessing.transform_labels(X)
+        # preprocessing.transform_labels(X_train)
+        # preprocessing.transform_labels(X_cv)
+        # preprocessing.transform_labels(X_test)
 
         X_non_tested_regularities = X[:]
         # everything then is based on idea "at the time of learning we only have regularities", thus anomalies should be
@@ -271,6 +272,7 @@ def perform_osvm(filename):
         df_test = dfu.merge_results(X_test, Y_test, X_pred_test)
         df_test.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-fn-" + features_number.__str__() + "-test-with_prediction.csv")
 
+        logger.log("Parameters used: nu: " + parameters_pair[1].__str__() + ", gamma: " + parameters_pair[0].__str__())
         logger.log("Assessment:")
         logger.log("Accuracy: " + metrics.accuracy_score(Y_test, X_pred_test).__str__())
         logger.log("Precision: " + metrics.precision_score(Y_test, X_pred_test).__str__())
