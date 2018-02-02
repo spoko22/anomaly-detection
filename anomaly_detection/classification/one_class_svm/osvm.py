@@ -18,7 +18,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.18-PCA"
+execution_version = "1.7.17-NO-PCA"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -35,8 +35,8 @@ numerical_features = [
 ]
 
 categorical_features = [
-    "SrcAddr",
-    "DstAddr",
+    # "SrcAddr",
+    # "DstAddr",
     "Dport",
     "Sport",
     "Proto",
@@ -201,25 +201,25 @@ def perform_osvm(filename):
         X_train = X_train[chosen_features]
         X_test = X_test[chosen_features]
 
-        chosen_numerical = []
-        chosen_categorical = []
-
-        for c in range(0, chosen_features.__len__()):
-            chosen = chosen_features[c]
-            if chosen in categorical_features:
-                chosen_categorical.append(chosen)
-            if chosen in numerical_features:
-                chosen_numerical.append(chosen)
-
-        pca = PCA(whiten=False).fit(X_train[chosen_numerical])
-
-        X_train_num = pca.transform(X_train[chosen_numerical])
-        X_test_num = pca.transform(X_test[chosen_numerical])
-
-        X_train = X_train[chosen_categorical]
-        X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
-        X_test = X_test[chosen_categorical]
-        X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
+        # chosen_numerical = []
+        # chosen_categorical = []
+        #
+        # for c in range(0, chosen_features.__len__()):
+        #     chosen = chosen_features[c]
+        #     if chosen in categorical_features:
+        #         chosen_categorical.append(chosen)
+        #     if chosen in numerical_features:
+        #         chosen_numerical.append(chosen)
+        #
+        # pca = PCA(whiten=False).fit(X_train[chosen_numerical])
+        #
+        # X_train_num = pca.transform(X_train[chosen_numerical])
+        # X_test_num = pca.transform(X_test[chosen_numerical])
+        #
+        # X_train = X_train[chosen_categorical]
+        # X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
+        # X_test = X_test[chosen_categorical]
+        # X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
 
         logger.log("Model starts to learn")
         model = osvm.fit(X_train)
