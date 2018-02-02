@@ -21,6 +21,10 @@ class Preprocessing:
         original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False), "inlier"] = -1
         original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False) == False, "inlier"] = 1
 
+    def transform_labels_invert(self, original_dataset):
+        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False), "inlier"] = 1
+        original_dataset.loc[original_dataset['Label'].str.contains(pat="botnet", case=False) == False, "inlier"] = 0
+
     def transform_labels_with_normals(self, original_dataset):
         original_dataset.loc[
             original_dataset['Label'].str.contains(pat="background", case=False), "inlier"] = 0
