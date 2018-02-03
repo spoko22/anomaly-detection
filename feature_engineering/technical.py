@@ -20,6 +20,14 @@ class TechnicalFeatures:
              dataset[column1] = result
          return dataset
 
+     def add_unreachable(self, dataset):
+         dataset.loc[dataset['State'].str.contains(pat="UR", case=False), "is_unreachable"] = 1
+         dataset.loc[dataset['State'].str.contains(pat="UR", case=False) == False, "is_unreachable"] = 0
+
+     def add_reset(self, dataset):
+         dataset.loc[dataset['State'].str.contains(pat="R", case=False) != False | dataset['Proto'].str.lower() != 'tcp', "reset"] = 0
+         dataset.loc[dataset['State'].str.contains(pat="R", case=False) & dataset['Proto'].str.lower() == 'tcp', "reset"] = 1
+
      def add_is_http(self, dataset, new_column):
          dataset.loc[self.__is_http__(dataset), new_column] = 1
          dataset.loc[~self.__is_http__(dataset), new_column] = 0
