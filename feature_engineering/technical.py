@@ -21,12 +21,12 @@ class TechnicalFeatures:
          return dataset
 
      def add_unreachable(self, dataset):
-         dataset.loc[dataset['State'].str.contains(pat="UR", case=False), "is_unreachable"] = 1
-         dataset.loc[dataset['State'].str.contains(pat="UR", case=False) == False, "is_unreachable"] = 0
+         dataset.loc[self.__is_unreachable__(dataset), "is_unreachable"] = 1
+         dataset.loc[~self.__is_unreachable__(dataset), "is_unreachable"] = 0
 
      def add_reset(self, dataset):
-         dataset.loc[dataset['State'].str.contains(pat="R", case=False) != False | dataset['Proto'].str.lower() != 'tcp', "reset"] = 0
-         dataset.loc[dataset['State'].str.contains(pat="R", case=False) & dataset['Proto'].str.lower() == 'tcp', "reset"] = 1
+         dataset.loc[~self.__is_reset__(dataset), "reset"] = 0
+         dataset.loc[self.__is_reset__(dataset), "reset"] = 1
 
      def add_is_http(self, dataset, new_column):
          dataset.loc[self.__is_http__(dataset), new_column] = 1
@@ -49,3 +49,8 @@ class TechnicalFeatures:
      def __is_irc__(self, dataset):
          return (dataset['Dport'].isin(['6697', '6660', '6661', '6662', '6663', '6664', '6665', '6666', '6667', '6668', '6669', '7000']) | dataset['Sport'].isin(['6697', '6660', '6661', '6662', '6663', '6664', '6665', '6666', '6667', '6668', '6669', '7000'])) & dataset['Proto'].str.lower().isin(['tcp'])
 
+     def __is_reset__(self, dataset):
+         return (dataset['State'].str.contains(pat="R", case=False)) & (dataset['Proto'].str.lower().isin(['tcp']))
+
+     def __is_unreachable__(self, dataset):
+         return dataset['State'].str.contains(pat="UR", case=False)
