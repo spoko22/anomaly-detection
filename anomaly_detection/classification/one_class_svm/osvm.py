@@ -105,9 +105,17 @@ def perform_osvm(filename):
     logger.log("Dataset read")
 
     # feature engineering on features that are true for every single row, so it should be done before other
-    # original_dataset = add_technical_features(original_dataset, numerical_features, categorical_features, binary_features)
+    original_dataset = add_technical_features(original_dataset, numerical_features, categorical_features, binary_features)
 
-    for features_number in range(3, 11):
+    for d in range(0, categorical_features_to_dummies.__len__()):
+        dummy = categorical_features_to_dummies[d]
+        dummies = pd.get_dummies(original_dataset[dummy])
+        for dummy_id in range(0, list(dummies).__len__()):
+            header = list(dummies)[dummy_id]
+            original_dataset[header] = dummies[header]
+            binary_features.append(header)
+
+    for features_number in range(3, 10):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
@@ -201,25 +209,26 @@ def perform_osvm(filename):
         X_train = X_train[chosen_features]
         X_test = X_test[chosen_features]
 
-        # chosen_numerical = []
-        # chosen_categorical = []
-        #
-        # for c in range(0, chosen_features.__len__()):
-        #     chosen = chosen_features[c]
-        #     if chosen in categorical_features:
-        #         chosen_categorical.append(chosen)
-        #     if chosen in numerical_features:
-        #         chosen_numerical.append(chosen)
-        #
-        # pca = PCA(whiten=False).fit(X_train[chosen_numerical])
-        #
-        # X_train_num = pca.transform(X_train[chosen_numerical])
-        # X_test_num = pca.transform(X_test[chosen_numerical])
-        #
-        # X_train = X_train[chosen_categorical]
-        # X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
-        # X_test = X_test[chosen_categorical]
-        # X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
+        chosen_numerical = []
+        chosen_categorical = []
+
+        for c in range(0, chosen_features.__len__()):
+            chosen = chosen_features[c]
+            if chosen in categorical_features:
+                chosen_categorical.append(chosen)
+            if chosen in numerical_features:
+                chosen_numerical.append(chosen)
+
+        if chosen_numerical.__len__() > 0 :
+            pca = PCA(whiten=False).fit(X_train[chosen_numerical])
+
+            X_train_num = pca.transform(X_train[chosen_numerical])
+            X_test_num = pca.transform(X_test[chosen_numerical])
+
+            X_train = X_train[chosen_categorical]
+            X_train = pd.concat([X_train, pd.DataFrame(data=X_train_num, index=X_train.index.values)], axis=1)
+            X_test = X_test[chosen_categorical]
+            X_test = pd.concat([X_test, pd.DataFrame(data=X_test_num, index=X_test.index.values)], axis=1)
 
         logger.log("Model starts to learn")
         model = osvm.fit(X_train)
