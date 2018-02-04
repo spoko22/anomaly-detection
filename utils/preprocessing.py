@@ -3,9 +3,11 @@ import pandas as pd
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 from sklearn.feature_selection import mutual_info_classif
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import QuantileTransformer
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import Normalizer
+import numpy as np
 
 class Preprocessing:
     le = LabelEncoder()
@@ -75,6 +77,19 @@ class Preprocessing:
         idxs_selected = X.columns[selector.get_support()]
         # Create new dataframe with only desired columns, or overwrite existing
         return X[idxs_selected]
+
+    def feature_selection_random_forest(self, X, Y, result_feature_count):
+        imp = self.get_rf_feat_importances(X, Y)
+        sorted_indexes = np.flip(np.argsort(imp), axis=0)
+        idx = []
+        for i in range(0, result_feature_count):
+            idx.append(sorted_indexes[i])
+        return X[X.columns[idx]]
+
+    def get_rf_feat_importances(self, X, Y):
+        rf = RandomForestClassifier()
+        rf.fit(X, Y)
+        return rf.feature_importances_
 
     def feature_selection_mutual_info(self, X, Y, result_feature_count, discrete_mask):
         # Create and fit selector
