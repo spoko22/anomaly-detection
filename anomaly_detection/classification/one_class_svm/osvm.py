@@ -11,6 +11,7 @@ from multiprocessing import Pool
 from sklearn.decomposition import PCA
 from skmca.skmca.skmca import MCA
 import numpy as np
+import gc
 
 from sklearn import metrics
 from sklearn.model_selection import cross_val_score
@@ -18,7 +19,7 @@ from sklearn import svm
 from feature_engineering.freq import FrequencyIndicator
 from feature_engineering.technical import TechnicalFeatures
 
-execution_version = "1.7.17-NO-PCA"
+execution_version = "1.4.1"
 
 preprocessing = Preprocessing()
 datasets_path = "../../../datasets/"
@@ -115,7 +116,7 @@ def perform_osvm(filename):
             original_dataset[header] = dummies[header]
             binary_features.append(header)
 
-    for features_number in range(3, 10):
+    for features_number in range(1, 10):
         X = original_dataset[:]
         engineered_features = []
         relevant_features = numerical_features[:]
@@ -141,9 +142,9 @@ def perform_osvm(filename):
         recall = np.array([])
         f1 = np.array([])
         auc = np.array([])
+        sel = SampleSelector(X)
         for i in range(1, maxc+1):
             logger.log('Loop ' + i.__str__() + "/" + maxc.__str__())
-            sel = SampleSelector(X)
             logger.log("Splitting dataset")
             X_train, X_cv, X_test = sel.novelty_detection_random(train_size=100000, test_size=100000)
             X_train.to_csv(path_or_buf=directory + "/" + "osvm-" + analyzed_file + "-train.csv")
@@ -206,7 +207,8 @@ def perform_osvm(filename):
                     preprocessing.quantile_standarization(X_test, feature)
                     # preprocessing.quantile_standarization(X_cv, feature)
 
-
+            del X_non_tested_regularities
+            gc.collect()
             osvm = svm.OneClassSVM(kernel='rbf', nu=0.1, gamma=0.1)
 
             # extracting labels to a separate dataframe
@@ -292,7 +294,11 @@ def perform_osvm(filename):
             f1 = np.append(f1, metrics.f1_score(Y_test, X_pred_test))
             auc = np.append(auc, metrics.roc_auc_score(Y_test, X_pred_test))
 
-        logger.log('ACC, PRECISION, RECALL, F1, AUC\n' + np.mean(acc).__str__() + '\n' + np.mean(precision).__str__() + '\n' + np.mean(recall).__str__() + '\n' + np.mean(f1).__str__() + '\n' + np.mean(auc).__str__())
+            del X_train, X_test, Y_test, Y_train, X_pred_train, X_pred_test
+            gc.collect()
+
+            logger.log('ACC, PRECISION, RECALL, F1, AUC MEAN\n' + np.mean(acc).__str__() + '\n' + np.mean(precision).__str__() + '\n' + np.mean(recall).__str__() + '\n' + np.mean(f1).__str__() + '\n' + np.mean(auc).__str__())
+            logger.log('ACC, PRECISION, RECALL, F1, AUC STD\n' + np.std(acc).__str__() + '\n' + np.std(precision).__str__() + '\n' + np.std(recall).__str__() + '\n' + np.std(f1).__str__() + '\n' + np.std(auc).__str__())
 
     logger.log("Working on file [" + analyzed_file + "] finished.")
 
