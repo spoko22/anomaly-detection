@@ -81,13 +81,23 @@ class Preprocessing:
     def feature_selection_random_forest(self, X, Y, result_feature_count):
         imp = self.get_rf_feat_importances(X, Y)
         sorted_indexes = np.flip(np.argsort(imp), axis=0)
+        result_string = '\n'
+        original_order_string = '\n'
+        headers_line = ''
+        scores_line = ''
+        for s in sorted_indexes:
+            result_string += (X.columns[s].__str__()) + '\t' + imp[s].__str__() + '\n'
+        for i in range(0, imp.__len__()):
+            headers_line += (X.columns[i].__str__()) + '\t'
+            scores_line += (imp[i].__str__()) + '\t'
         idx = []
         for i in range(0, result_feature_count):
             idx.append(sorted_indexes[i])
-        return X[X.columns[idx]]
+        original_order_string = '\n' + headers_line + '\n' + scores_line
+        return X[X.columns[idx]], result_string, original_order_string
 
     def get_rf_feat_importances(self, X, Y):
-        rf = RandomForestClassifier()
+        rf = RandomForestClassifier(n_estimators=1000)
         rf.fit(X, Y)
         return rf.feature_importances_
 
