@@ -44,7 +44,7 @@ class TechnicalFeatures:
          return dataset['Dport'].isin(['80', '8080', '443']) | dataset['Sport'].isin(['80', '8080', '443'])
 
      def __is_email__(self, dataset):
-         return (dataset['Dport'].isin(['25', '110', '143', '220', '587', '995']) | dataset['Sport'].isin(['25', '110', '143', '220', '587', '995'])) & dataset['Proto'].str.lower().isin(['tcp'])
+         return (dataset['Dport'].isin(['25', '465', '110', '995', '143', '993', '587']) | dataset['Sport'].isin(['25', '465', '110', '995', '143', '993', '587'])) & dataset['Proto'].str.lower().isin(['tcp'])
 
      def __is_irc__(self, dataset):
          return (dataset['Dport'].isin(['6697', '6660', '6661', '6662', '6663', '6664', '6665', '6666', '6667', '6668', '6669', '7000']) | dataset['Sport'].isin(['6697', '6660', '6661', '6662', '6663', '6664', '6665', '6666', '6667', '6668', '6669', '7000'])) & dataset['Proto'].str.lower().isin(['tcp'])
