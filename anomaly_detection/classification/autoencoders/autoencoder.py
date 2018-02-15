@@ -10,8 +10,9 @@ from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras import regularizers
 from keras import metrics
 from sklearn.metrics import (confusion_matrix, precision_recall_curve, auc,
-                             roc_curve, recall_score, classification_report, f1_score,
-                             precision_recall_fscore_support)
+                             roc_curve, recall_score, classification_report, f1_score, precision_score,
+                             precision_recall_fscore_support, accuracy_score)
+from keras.losses import binary_crossentropy
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -28,14 +29,14 @@ class Autoencoder:
     preprocessing = Preprocessing()
     tech = TechnicalFeatures
 
-    def __init__(self, file, version="test", numerical_features=[], categorical_features=[]):
+    def __init__(self, file, version="test", numerical_features=[], categorical_features=[], binary_features=[]):
         original_dataset = pd.read_csv(self.datasets_path + file)
         self.X = original_dataset[:]
         self.execution_version = version
 
         analyzed_file = file
         date = datetime.now().strftime("%Y-%m-%d_%H-%M").__str__()
-        directory = "../output/taught-models/" + date + '-' + self.execution_version + '-' + analyzed_file
+        directory = "../output-autoencoders/taught-models/" + date + '-' + self.execution_version + '-' + analyzed_file
 
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -44,8 +45,10 @@ class Autoencoder:
 
         self.numerical_features = numerical_features
         self.categorical_features = categorical_features
+        self.binary_features = []
         self.relevant_features = numerical_features[:]
         self.relevant_features.extend(categorical_features)
+        self.relevant_features.extend(binary_features)
 
         self.X = self.__add_technical_features__(self.X, self.numerical_features, self.categorical_features, self.binary_features)
 
@@ -88,7 +91,7 @@ class Autoencoder:
 
     def __split_datasets__(self):
         sel = SampleSelector(self.X)
-        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=100000, test_size=100000)
+        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=400000, test_size=100000)
         return X_train, X_cv, X_test
 
     def perform_ae(self):
@@ -133,10 +136,10 @@ class Autoencoder:
         decoder = Dense(input_dim, activation='relu')(decoder)
         autoencoder = Model(inputs=input_layer, outputs=decoder)
 
-        nb_epoch = 100
-        batch_size = 32
+        nb_epoch = 10
+        batch_size = 128
         autoencoder.compile(optimizer='adam',
-                            loss='mean_squared_error',
+                            loss='mse',
                             metrics=['accuracy'])
         checkpointer = ModelCheckpoint(filepath="model.h5",
                                        verbose=0,
@@ -149,12 +152,19 @@ class Autoencoder:
                                   epochs=nb_epoch,
                                   batch_size=batch_size,
                                   shuffle=True,
+                                  validation_split=0.2,
                                   validation_data=(X_test, X_test),
                                   verbose=1,
                                   callbacks=[checkpointer, tensorboard]).history
 
         predictions = autoencoder.predict(X_test)
+
+        train_pred = autoencoder.predict(X_train)
+
+        mse_train = np.mean(np.power(X_train - train_pred, 2), axis=1)
         mse = np.mean(np.power(X_test - predictions, 2), axis=1)
+
+        # bc = binary_crossentropy(y_test, predictions)
         error_df = pd.DataFrame({'reconstruction_error': mse,
                                  'true_class': y_test})
         error_df.describe()
@@ -162,15 +172,31 @@ class Autoencoder:
         fpr, tpr, thresholds = roc_curve(error_df.true_class, error_df.reconstruction_error)
         roc_auc = auc(fpr, tpr)
 
-        plt.title('Receiver Operating Characteristic')
-        plt.plot(fpr, tpr, label='AUC = %0.4f' % roc_auc)
-        plt.legend(loc='lower right')
-        plt.plot([0, 1], [0, 1], 'r--')
-        plt.xlim([-0.001, 1])
-        plt.ylim([0, 1.001])
-        plt.ylabel('True Positive Rate')
-        plt.xlabel('False Positive Rate')
-        plt.show()
+        threshold = error_df.loc[error_df.true_class == 1].reconstruction_error.quantile(q=0.01)
+
+        y_pred = [1 if e > threshold else 0 for e in error_df.reconstruction_error.values]
+        error_df['predictions'] = y_pred
+
+        y_test_inliers_true = [-1 if tc == 1 else 1 for tc in error_df.true_class.values]
+        y_test_inliers_pred = [-1 if tc == 1 else 1 for tc in y_pred]
+
+        tn, fp, fn, tp = confusion_matrix(y_test_inliers_true, y_test_inliers_pred).ravel()
+
+        self.logger.log("Accuracy: " + accuracy_score(y_test_inliers_true, y_test_inliers_pred).__str__())
+        self.logger.log("Precision: " + precision_score(y_test_inliers_true, y_test_inliers_pred).__str__())
+        self.logger.log("Recall: " + recall_score(y_test_inliers_true, y_test_inliers_pred).__str__())
+        self.logger.log("F1: " + f1_score(y_test_inliers_true, y_test_inliers_pred).__str__())
+        self.logger.log("AUC: " + roc_auc.__str__())
+
+        # plt.title('Receiver Operating Characteristic')
+        # plt.plot(fpr, tpr, label='AUC = %0.4f' % roc_auc)
+        # plt.legend(loc='lower right')
+        # plt.plot([0, 1], [0, 1], 'r--')
+        # plt.xlim([-0.001, 1])
+        # plt.ylim([0, 1.001])
+        # plt.ylabel('True Positive Rate')
+        # plt.xlabel('False Positive Rate')
+        # plt.show()
 
 
 

@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import QuantileTransformer
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
 class Preprocessing:
@@ -15,6 +16,7 @@ class Preprocessing:
     q_ts = {}
     std_scs = {}
     std_ns = {}
+    std_min_maxs = {}
 
     def read_file(self, path):
         return pd.read_csv(path)
@@ -140,6 +142,17 @@ class Preprocessing:
             std_sc = self.std_scs[column]
             result = std_sc.transform(dataset[column].values.reshape(-1, 1))
         dataset[column] = result
+
+    def min_max(self, dataset, column):
+        if column not in self.std_scs:
+            std_min_max = MinMaxScaler()
+            self.std_min_maxs[column] = std_min_max
+            result = std_min_max.fit_transform(dataset[column].values.reshape(-1, 1))
+        else:
+            std_min_max = self.std_min_maxs[column]
+            result = std_min_max.transform(dataset[column].values.reshape(-1, 1))
+        dataset[column] = result
+
 
     def transform_column_to_dummies(self, dataset, column):
         # uniques = dataset[column].domain.nunique()
