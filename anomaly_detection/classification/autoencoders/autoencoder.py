@@ -29,6 +29,9 @@ class Autoencoder:
     preprocessing = Preprocessing()
     tech = TechnicalFeatures
 
+    def log(self, msg):
+        self.logger.log(msg)
+
     def __init__(self, file, version="test", numerical_features=[], categorical_features=[], binary_features=[]):
         original_dataset = pd.read_csv(self.datasets_path + file)
         self.X = original_dataset[:]
@@ -89,16 +92,16 @@ class Autoencoder:
         self.preprocessing.transform_labels(self.X)
 
 
-    def __split_datasets__(self):
+    def __split_datasets__(self, train_size=400000, test_size=100000):
         sel = SampleSelector(self.X)
-        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=400000, test_size=100000)
+        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=train_size, test_size=test_size)
         return X_train, X_cv, X_test
 
-    def perform_ae(self):
+    def perform_ae(self, nb_epoch=100, batch_size= 128, train_size=400000, test_size=100000):
         self.__replace_labels__()
         self.__transform_categories_to_numbers__()
 
-        X_train, X_cv, X_test = self.__split_datasets__()
+        X_train, X_cv, X_test = self.__split_datasets__(train_size=train_size, test_size=test_size)
 
         self.preprocessing.transform_labels_invert(X_train)
         self.preprocessing.transform_labels_invert(X_test)
@@ -110,15 +113,15 @@ class Autoencoder:
         y_test = X_test['inlier']
         X_test = X_test[self.relevant_features]
 
-        # standarization, normalization etc
-        for f_n in range(0, self.numerical_features.__len__()):
-            feature = self.numerical_features[f_n]
-            if feature in self.relevant_features:
-                self.logger.log("Quantile standarization of feature: " + feature)
-                # preprocessing.quantile_standarization(X_train, feature)
-                self.preprocessing.quantile_standarization(X_train, feature)
-                self.preprocessing.quantile_standarization(X_test, feature)
-                # preprocessing.quantile_standarization(X_cv, feature)
+        # # standarization, normalization etc
+        # for f_n in range(0, self.numerical_features.__len__()):
+        #     feature = self.numerical_features[f_n]
+        #     if feature in self.relevant_features:
+        #         self.logger.log("Quantile standarization of feature: " + feature)
+        #         # preprocessing.quantile_standarization(X_train, feature)
+        #         self.preprocessing.quantile_standarization(X_train, feature)
+        #         self.preprocessing.quantile_standarization(X_test, feature)
+        #         # preprocessing.quantile_standarization(X_cv, feature)
 
         X_train = np.array(X_train)
         X_test = np.array(X_test)
@@ -136,8 +139,6 @@ class Autoencoder:
         decoder = Dense(input_dim, activation='relu')(decoder)
         autoencoder = Model(inputs=input_layer, outputs=decoder)
 
-        nb_epoch = 10
-        batch_size = 128
         autoencoder.compile(optimizer='adam',
                             loss='mse',
                             metrics=['accuracy'])
@@ -182,21 +183,23 @@ class Autoencoder:
 
         tn, fp, fn, tp = confusion_matrix(y_test_inliers_true, y_test_inliers_pred).ravel()
 
-        self.logger.log("Accuracy: " + accuracy_score(y_test_inliers_true, y_test_inliers_pred).__str__())
-        self.logger.log("Precision: " + precision_score(y_test_inliers_true, y_test_inliers_pred).__str__())
-        self.logger.log("Recall: " + recall_score(y_test_inliers_true, y_test_inliers_pred).__str__())
-        self.logger.log("F1: " + f1_score(y_test_inliers_true, y_test_inliers_pred).__str__())
-        self.logger.log("AUC: " + roc_auc.__str__())
+        acc = accuracy_score(y_test_inliers_true, y_test_inliers_pred)
+        precision = precision_score(y_test_inliers_true, y_test_inliers_pred)
+        recall = recall_score(y_test_inliers_true, y_test_inliers_pred)
+        f1 = f1_score(y_test_inliers_true, y_test_inliers_pred)
+        auc_score = roc_auc
 
-        # plt.title('Receiver Operating Characteristic')
-        # plt.plot(fpr, tpr, label='AUC = %0.4f' % roc_auc)
-        # plt.legend(loc='lower right')
-        # plt.plot([0, 1], [0, 1], 'r--')
-        # plt.xlim([-0.001, 1])
-        # plt.ylim([0, 1.001])
-        # plt.ylabel('True Positive Rate')
-        # plt.xlabel('False Positive Rate')
-        # plt.show()
+        self.log("Accuracy: " + acc.__str__())
+        self.log("Precision: " + precision.__str__())
+        self.log("Recall: " + recall.__str__())
+        self.log("F1: " + f1.__str__())
+        self.log("AUC: " + auc_score.__str__())
 
+        self.log("TP: " + tp.__str__())
+        self.log("TN: " + tn.__str__())
+        self.log("FP: " + fp.__str__())
+        self.log("FN: " + fn.__str__())
+
+        return acc, precision, recall, f1, auc_score
 
 
