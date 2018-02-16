@@ -113,15 +113,15 @@ class Autoencoder:
         y_test = X_test['inlier']
         X_test = X_test[self.relevant_features]
 
-        # # standarization, normalization etc
-        # for f_n in range(0, self.numerical_features.__len__()):
-        #     feature = self.numerical_features[f_n]
-        #     if feature in self.relevant_features:
-        #         self.logger.log("Quantile standarization of feature: " + feature)
-        #         # preprocessing.quantile_standarization(X_train, feature)
-        #         self.preprocessing.quantile_standarization(X_train, feature)
-        #         self.preprocessing.quantile_standarization(X_test, feature)
-        #         # preprocessing.quantile_standarization(X_cv, feature)
+        # standarization, normalization etc
+        for f_n in range(0, self.numerical_features.__len__()):
+            feature = self.numerical_features[f_n]
+            if feature in self.relevant_features:
+                self.logger.log("Quantile standarization of feature: " + feature)
+                # preprocessing.quantile_standarization(X_train, feature)
+                self.preprocessing.quantile_standarization(X_train, feature)
+                self.preprocessing.quantile_standarization(X_test, feature)
+                # preprocessing.quantile_standarization(X_cv, feature)
 
         X_train = np.array(X_train)
         X_test = np.array(X_test)
