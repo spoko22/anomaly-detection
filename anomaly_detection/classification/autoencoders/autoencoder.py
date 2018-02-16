@@ -28,6 +28,7 @@ class Autoencoder:
     logger = None
     preprocessing = Preprocessing()
     tech = TechnicalFeatures
+    analyzed_file = None
 
     def log(self, msg):
         self.logger.log(msg)
@@ -37,14 +38,14 @@ class Autoencoder:
         self.X = original_dataset[:]
         self.execution_version = version
 
-        analyzed_file = file
+        self.analyzed_file = file
         date = datetime.now().strftime("%Y-%m-%d_%H-%M").__str__()
-        directory = "../output-autoencoders/taught-models/" + date + '-' + self.execution_version + '-' + analyzed_file
+        directory = "../output-autoencoders/taught-models/" + date + '-' + self.execution_version + '-' + self.analyzed_file
 
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        self.logger = Logger(directory + "/" + "autoencoder-" + analyzed_file + ".log")
+        self.logger = Logger(directory + "/" + "autoencoder-" + self.analyzed_file + ".log")
 
         self.numerical_features = numerical_features
         self.categorical_features = categorical_features
@@ -91,13 +92,12 @@ class Autoencoder:
     def __replace_labels__(self):
         self.preprocessing.transform_labels(self.X)
 
-
     def __split_datasets__(self, train_size=400000, test_size=100000):
         sel = SampleSelector(self.X)
         X_train, X_cv, X_test = sel.novelty_detection_random(train_size=train_size, test_size=test_size)
         return X_train, X_cv, X_test
 
-    def perform_ae(self, nb_epoch=100, batch_size= 128, train_size=400000, test_size=100000):
+    def perform_ae(self, nb_epoch=100, batch_size=128, train_size=400000, test_size=100000):
         self.__replace_labels__()
         self.__transform_categories_to_numbers__()
 
@@ -142,7 +142,10 @@ class Autoencoder:
         autoencoder.compile(optimizer='adam',
                             loss='mse',
                             metrics=['accuracy'])
-        checkpointer = ModelCheckpoint(filepath="model.h5",
+
+        file_path = datetime.now().strftime("%Y%m%d%H%M").__str__() + self.analyzed_file + "model.hdf5"
+
+        checkpointer = ModelCheckpoint(filepath=file_path,
                                        verbose=0,
                                        save_best_only=True)
         tensorboard = TensorBoard(log_dir='./logs',
@@ -173,32 +176,53 @@ class Autoencoder:
         fpr, tpr, thresholds = roc_curve(error_df.true_class, error_df.reconstruction_error)
         roc_auc = auc(fpr, tpr)
 
-        threshold = error_df.loc[error_df.true_class == 1].reconstruction_error.quantile(q=0.01)
+        threshold = 0
+        best_fp = 0
+        best_tp = 0
 
+        for i in range(0, fpr.__len__()):
+            fp = fpr[i]
+            tp = tpr[i]
+            if (best_tp - best_fp) < (tp - fp):
+                best_fp = fp
+                best_tp = tp
+                threshold = thresholds[i]
+
+        # threshold = error_df.loc[error_df.true_class == 1].reconstruction_error.quantile(q=0.1)
+
+        # for threshold in reversed(filter(lambda thr: (thr > threshold_min) & (thr < threshold_max), thresholds)):
         y_pred = [1 if e > threshold else 0 for e in error_df.reconstruction_error.values]
-        error_df['predictions'] = y_pred
 
         y_test_inliers_true = [-1 if tc == 1 else 1 for tc in error_df.true_class.values]
         y_test_inliers_pred = [-1 if tc == 1 else 1 for tc in y_pred]
-
-        tn, fp, fn, tp = confusion_matrix(y_test_inliers_true, y_test_inliers_pred).ravel()
 
         acc = accuracy_score(y_test_inliers_true, y_test_inliers_pred)
         precision = precision_score(y_test_inliers_true, y_test_inliers_pred)
         recall = recall_score(y_test_inliers_true, y_test_inliers_pred)
         f1 = f1_score(y_test_inliers_true, y_test_inliers_pred)
+        tn, fp, fn, tp = confusion_matrix(y_test_inliers_true, y_test_inliers_pred).ravel()
+
+        best_tp = tp
+        best_tn = tn
+        best_fp = fp
+        best_fn = fn
+        best_acc = acc
+        best_precision = precision
+        best_recall = recall
+        best_f1 = f1
+
         auc_score = roc_auc
 
-        self.log("Accuracy: " + acc.__str__())
-        self.log("Precision: " + precision.__str__())
-        self.log("Recall: " + recall.__str__())
-        self.log("F1: " + f1.__str__())
+        self.log("Accuracy: " + best_acc.__str__())
+        self.log("Precision: " + best_precision.__str__())
+        self.log("Recall: " + best_recall.__str__())
+        self.log("F1: " + best_f1.__str__())
         self.log("AUC: " + auc_score.__str__())
 
-        self.log("TP: " + tp.__str__())
-        self.log("TN: " + tn.__str__())
-        self.log("FP: " + fp.__str__())
-        self.log("FN: " + fn.__str__())
+        self.log("TP: " + best_tp.__str__())
+        self.log("TN: " + best_tn.__str__())
+        self.log("FP: " + best_fp.__str__())
+        self.log("FN: " + best_fn.__str__())
 
         return acc, precision, recall, f1, auc_score
 

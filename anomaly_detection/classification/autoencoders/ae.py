@@ -23,8 +23,8 @@ numerical_features = [
 ]
 
 categorical_features = [
-    # "SrcAddr",
-    # "DstAddr",
+    "SrcAddr",
+    "DstAddr",
     "Dport",
     "Sport",
     "Proto",
@@ -36,9 +36,10 @@ binary_features = [
     # 'is_email'
 ]
 
-PROCESSES_NUMBER = 5 # None
+PROCESSES_NUMBER = 4
 CV_LOOP = 4
 PCA_TURNED_ON = False
+epochs=100
 
 NL = "\n"
 
@@ -54,7 +55,7 @@ def do_ae(filename):
 
     for loop in range(1, CV_LOOP+1):
         ae.log("Loop " + loop.__str__() + "/" + (CV_LOOP).__str__())
-        acc, precision, recall, f1, auc_score = ae.perform_ae(nb_epoch=100)
+        acc, precision, recall, f1, auc_score = ae.perform_ae(nb_epoch=epochs)
 
         ae.log("Current best scores:")
         accs = np.append(accs, acc)
