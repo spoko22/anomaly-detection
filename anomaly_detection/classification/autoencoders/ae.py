@@ -2,7 +2,7 @@ from anomaly_detection.classification.autoencoders.autoencoder import Autoencode
 from multiprocessing import Pool
 import numpy as np
 
-version = "2.0.1"
+version = "2.0.2"
 
 filenames = [
              "scenario_6.binetflow",
