@@ -55,6 +55,7 @@ class Autoencoder:
         self.relevant_features.extend(binary_features)
 
         self.X = self.__add_technical_features__(self.X, self.numerical_features, self.categorical_features, self.binary_features)
+        self.log("Autoencoder initialized. Used features: " + self.relevant_features.__str__())
 
     def __add_technical_features__(self, dataset, numerical_features, categorical_features, binary_features):
         tech = TechnicalFeatures()
@@ -90,11 +91,11 @@ class Autoencoder:
             self.preprocessing.transform_non_numerical_column(self.X, feature)
 
     def __replace_labels__(self):
-        self.preprocessing.transform_labels(self.X)
+        self.preprocessing.transform_labels_with_normals(self.X)
 
     def __split_datasets__(self, train_size=400000, test_size=100000):
         sel = SampleSelector(self.X)
-        X_train, X_cv, X_test = sel.novelty_detection_random(train_size=train_size, test_size=test_size)
+        X_train, X_cv, X_test = sel.novelty_detection_normal_heavy(train_size=train_size, test_size=test_size)
         return X_train, X_cv, X_test
 
     def perform_ae(self, nb_epoch=100, batch_size=128, train_size=400000, test_size=100000):

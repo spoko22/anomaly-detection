@@ -1,8 +1,9 @@
 from anomaly_detection.classification.autoencoders.autoencoder import Autoencoder
 from multiprocessing import Pool
+from utils.constants import Dur, SrcBytesRate, TotPkts, TotBytesRate, TotBytes, SrcBytes, PacketOverhead, SrcAddr, DstAddr, Dport, Sport, Proto, Dir, State, is_email
 import numpy as np
 
-version = "2.0.2"
+version = "2.0.4"
 
 filenames = [
              "scenario_6.binetflow",
@@ -13,31 +14,39 @@ filenames = [
              ]
 
 numerical_features = [
-    "Dur",
-    # "SrcBytesRate",
-    "TotPkts",
-    # "TotBytesRate",
-    "TotBytes",
-    "SrcBytes"
-    # "PacketOverhead"
+    Dur,
+    SrcBytesRate,
+    TotPkts,
+    TotBytesRate,
+    TotBytes,
+    SrcBytes,
+    PacketOverhead
 ]
 
 categorical_features = [
-    "SrcAddr",
-    "DstAddr",
-    "Dport",
-    "Sport",
-    "Proto",
-    "Dir",
-    "State"
+    SrcAddr,
+    DstAddr,
+    Dport,
+    Sport,
+    Proto,
+    Dir,
+    State
 ]
 
 binary_features = [
-    # 'is_email'
+    is_email
 ]
 
-PROCESSES_NUMBER = 4
-CV_LOOP = 4
+fixed_features = {
+    "scenario_1.binetflow": [Dur, TotPkts, TotBytes, SrcBytes, SrcAddr, DstAddr, Dport, Sport],
+    "scenario_2.binetflow": [Dur, TotPkts, TotBytes, SrcBytes, SrcAddr, DstAddr, Dport, Proto],
+    "scenario_6.binetflow": [Dur, TotBytes, SrcBytes, SrcAddr, DstAddr, Dport],
+    "scenario_8.binetflow": [Dur, TotBytes, SrcBytes, SrcAddr, DstAddr, Dport, State],
+    "scenario_9.binetflow": [Dur, TotBytes, SrcBytes, SrcAddr, DstAddr, Dport, Sport, State]
+}
+
+PROCESSES_NUMBER = 3
+CV_LOOP = 10
 PCA_TURNED_ON = False
 epochs=100
 
@@ -45,8 +54,9 @@ NL = "\n"
 
 
 def do_ae(filename):
-    ae = Autoencoder(filename, version, numerical_features, categorical_features, binary_features)
-    ae.log("Autoencoder initialized")
+    features = fixed_features[filename]
+
+    ae = Autoencoder(filename, version, filter(lambda f: f in numerical_features, features), filter(lambda f: f in categorical_features, features), filter(lambda f: f in binary_features, features))
     accs = []
     precisions = []
     recalls = []
@@ -55,7 +65,7 @@ def do_ae(filename):
 
     for loop in range(1, CV_LOOP+1):
         ae.log("Loop " + loop.__str__() + "/" + (CV_LOOP).__str__())
-        acc, precision, recall, f1, auc_score = ae.perform_ae(nb_epoch=epochs)
+        acc, precision, recall, f1, auc_score = ae.perform_ae(nb_epoch=epochs, train_size=50000, test_size=10000)
 
         ae.log("Current best scores:")
         accs = np.append(accs, acc)
